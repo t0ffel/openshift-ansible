@@ -3,17 +3,25 @@
     msg: Only one Fluentd nodeselector key pair should be provided
   when: "{{ openshift_logging_fluentd_nodeselector.keys() | count }} > 1"
 
+# TODO: fill out -- we want to be able to provide any host
+- fail:
+    msg: Fluentd host is required
+  when: false
+
+# allow passing in a tempdir
 - name: Create temp directory for doing work in
   command: mktemp -d /tmp/openshift-logging-ansible-XXXXXX
   register: mktemp
   changed_when: False
   check_mode: no
+#  when: not openshift_logging_tempdir
 
 - name: Copy the admin client config(s)
   command: >
     cp {{ openshift_master_config_dir }}/admin.kubeconfig {{ mktemp.stdout }}/admin.kubeconfig
   changed_when: False
   check_mode: no
+#  when: not openshift_logging_tempdir
 
 # we want to make sure we have all the necessary components here
 
@@ -66,8 +74,145 @@
   check_mode: no
   when: cluster_readers_output.stdout.find("system:serviceaccount:{{openshift_logging_namespace}}:aggregated-logging-fluentd") == -1
 
-# create Fluentd daemonset
+# create Fluentd configmap
+- block:
+    - copy:
+        src: fluent.conf
+        dest: "{{mktemp.stdout}}/fluent.conf"
+      when: fluentd_config_contents is undefined
+      changed_when: no
 
+    - copy:
+        src: fluentd-throttle-config.yaml
+        dest: "{{mktemp.stdout}}/fluentd-throttle-config.yaml"
+      when: fluentd_throttle_contents is undefined
+      changed_when: no
+
+    - copy:
+        src: secure-forward.conf
+        dest: "{{mktemp.stdout}}/secure-forward.conf"
+      when: fluentd_securefoward_contents is undefined
+      changed_when: no
+
+    - copy:
+        content: "{{fluentd_config_contents}}"
+        dest: "{{mktemp.stdout}}/fluent.conf"
+      when: fluentd_config_contents is defined
+      changed_when: no
+
+    - copy:
+        content: "{{fluentd_throttle_contents}}"
+        dest: "{{mktemp.stdout}}/fluentd-throttle-config.yaml"
+      when: fluentd_throttle_contents is defined
+      changed_when: no
+
+    - copy:
+        content: "{{fluentd_secureforward_contents}}"
+        dest: "{{mktemp.stdout}}/secure-forward.conf"
+      when: fluentd_secureforward_contents is defined
+      changed_when: no
+
+    - command: >
+        {{ openshift.common.client_binary }} --config={{ mktemp.stdout }}/admin.kubeconfig create configmap logging-fluentd
+        --from-file=fluent.conf={{mktemp.stdout}}/fluent.conf --from-file=throttle-config.yaml={{mktemp.stdout}}/fluentd-throttle-config.yaml
+        --from-file=secure-forward.conf={{mktemp.stdout}}/secure-forward.conf -o yaml --dry-run
+      register: fluentd_configmap
+      changed_when: no
+
+    - copy:
+        content: "{{fluentd_configmap.stdout}}"
+        dest: "{{mktemp.stdout}}/templates/logging-fluentd-configmap.yaml"
+      when: fluentd_configmap.stdout is defined
+      changed_when: no
+  check_mode: no
+
+- name: Set logging-fluentd configmap
+  oc_obj:
+    state: present
+    kubeconfig: {{ mktemp.stdout }}/admin.kubeconfig
+    name: logging-fluentd
+    namespace: {{ opneshift_logging_namespace }}
+    kind: configmap
+    files:
+    - name: logging-fluentd-configmap
+      path: {{ mktemp.stdout }}/templates/logging-fluentd-configmap.yaml
+    delete_after: true
+
+# create Fluentd secret
+- name: Retrieving the cert to use when generating secrets for Fluentd
+  slurp:
+    src: "{{generated_certs_dir}}/{{item.file}}"
+  register: key_pairs
+  with_items:
+    - { name: "ca_file", file: "ca.crt" }
+    - { name: "fluentd_key", file: "system.logging.fluentd.key"}
+    - { name: "fluentd_cert", file: "system.logging.fluentd.crt"}
+
+- name: Set logging-fluentd secret
+  oc_secret:
+    state: present
+    kubeconfig: {{ mktemp.stdout }}/admin.kubeconfig
+    name: logging-fluentd
+    namespace: {{ openshift_logging_namespace }}
+    contents:
+    - path: ca
+      data: "{{key_pairs | entry_from_named_pair('ca_file')| b64decode }}"
+    - path: key
+      data: "{{key_pairs | entry_from_named_pair('fluentd_key')| b64decode }}"
+    - path: cert
+      data: "{{key_pairs | entry_from_named_pair('fluentd_cert')| b64decode }}"
+
+# create Fluentd daemonset
+- name: Generate logging-fluentd daemonset definition
+  template:
+    src: {{ openshift_logging_fluentd_version }}/fluentd.j2
+    dest: {{mktemp.stdout}}/templates/logging-fluentd.yaml
+  vars:
+    daemonset_name: logging-fluentd
+    daemonset_component: fluentd
+    daemonset_container_name: fluentd-elasticsearch
+    daemonset_serviceAccount: aggregated-logging-fluentd
+    ops_host: "{{ fluentd_ops_host }}"
+    ops_port: "{{ fluentd_ops_port }}"
+    fluentd_nodeselector_key: "{{openshift_logging_fluentd_nodeselector.keys()[0]}}"
+    fluentd_nodeselector_value: "{{openshift_logging_fluentd_nodeselector.values()[0]}}"
+  check_mode: no
+  changed_when: no
+
+- name: Set logging-fluentd daemonset
+  oc_obj:
+    state: present
+    kubeconfig: {{ mktemp.stdout }}/admin.kubeconfig
+    name: logging-fluentd
+    namespace: {{ openshift_logging_namespace }}
+    kind: daemonset
+    files:
+    - name: logging-fluentd
+      path: {{ mktemp.stdout }}/logging-fluentd.yaml
+    delete_after: true
+
+# Scale up Fluentd
+- name: Retrieve list of Fluentd hosts
+  oc_obj:
+    state: list
+    kind: node
+  when: "'--all' in openshift_logging_fluentd_hosts"
+  register: fluentd_hosts
+
+- name: Set openshift_logging_fluentd_hosts
+  set_fact:
+    openshift_logging_fluentd_hosts: "{{ fluentd_hosts.results.results[0]['items'] | map(attribute='metadata.name') | list }}"
+  when: "'--all' in openshift_logging_fluentd_hosts"
+
+- name: Label nodes for Fluentd deployment
+  oc_label:
+    name: "{{ fluentd_host }}"
+    kind: node
+    state: add
+    labels: "{{ openshift_logging_fluentd_nodeselector | oo_dict_to_list_of_dict }}"
+  with_items: "{{ openshift_logging_fluentd_hosts }}"
+  loop_control:
+    loop_var: fluentd_host
 
 - name: Delete temp directory
   file:
@@ -75,3 +220,4 @@
     state: absent
   changed_when: False
   check_mode: no
+#  when: not openshift_logging_tempdir
