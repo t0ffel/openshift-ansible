@@ -37,44 +37,24 @@
     image_pull_secrets: {{ openshift_logging_pull_secrets | default(None) }}
 
 # set service account scc
-- name: Check Fluentd privileged permissions
-  command: >
-    {{ openshift.common.client_binary }} --config={{ mktemp.stdout }}/admin.kubeconfig
-    get scc/privileged -o jsonpath='{.users}'
-  register: privileged_scc_output
-  check_mode: no
-  changed_when: no
-
 - name: Set privileged permissions for Fluentd
-  command: >
-    {{ openshift.common.admin_binary}} --config={{ mktemp.stdout }}/admin.kubeconfig policy
-    add-scc-to-user privileged system:serviceaccount:{{openshift_logging_namespace}}:aggregated-logging-fluentd
-  register: fluentd_scc
-  failed_when:
-  - fluentd_scc.rc == 1
-  - 'exists' not in fluentd_scc.stderr
-  check_mode: no
-  when: privileged_scc_output.stdout.find("system:serviceaccount:{{openshift_logging_namespace}}:aggregated-logging-fluentd") == -1
+  oc_adm_policy_user:
+    kubconfig: {{ mktemp.stdout }}/admin.kubeconfig
+    namespace: {{ openshift_logging_namespace }}
+    resource_kind: scc
+    resource_name: privileged
+    state: present
+    user: system:serviceaccount:{{openshift_logging_namespace}}:aggregated-logging-fluentd
 
 # set service account permissions
-- name: Check Fluentd cluster-reader permissions
-  command: >
-    {{ openshift.common.client_binary }} --config={{ mktemp.stdout }}/admin.kubeconfig
-    get clusterrolebinding/cluster-readers -o jsonpath='{.userNames}'
-  register: cluster_readers_output
-  check_mode: no
-  changed_when: no
-
 - name: Set cluster-reader permissions for Fluentd
-  command: >
-    {{ openshift.common.admin_binary}} --config={{ mktemp.stdout }}/admin.kubeconfig policy
-    add-cluster-role-to-user cluster-reader system:serviceaccount:{{openshift_logging_namespace}}:aggregated-logging-fluentd
-  register: fluentd_cluster_reader
-  failed_when:
-  - fluentd_cluster_reader.rc == 1
-  - 'exists' not in fluentd_cluster_reader.stderr
-  check_mode: no
-  when: cluster_readers_output.stdout.find("system:serviceaccount:{{openshift_logging_namespace}}:aggregated-logging-fluentd") == -1
+  oc_adm_policy_user:
+    kubeconfig: {{ mktemp.stdout }}/admin.kubeconfig
+    namespace: {{ openshift_logging_namespace }}
+    resource_kind: cluster-role
+    resource_name: cluster-reader
+    state: present
+    user: system:serviceaccount:{{openshift_logging_namespace}}:aggregated-logging-fluentd
 
 # create Fluentd configmap
 - block:
@@ -167,7 +147,7 @@
 # create Fluentd daemonset
 - name: Generate logging-fluentd daemonset definition
   template:
-    src: {{ openshift_logging_fluentd_version }}/fluentd.j2
+    src: {{ fluentd_version }}/fluentd.j2
     dest: {{mktemp.stdout}}/templates/logging-fluentd.yaml
   vars:
     daemonset_name: logging-fluentd
