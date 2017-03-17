@@ -1,14 +1,21 @@
 ---
-- include: determine_version.yaml
-
 - fail:
     msg: Only one Fluentd nodeselector key pair should be provided
   when: "{{ openshift_logging_fluentd_nodeselector.keys() | count }} > 1"
 
-# TODO: fill out -- we want to be able to provide any host
 - fail:
-    msg: Fluentd host is required
-  when: false
+    msg: Application logs destination is required
+  when: not openshift_logging_fluentd_app_host or openshift_logging_fluentd_app_host == ''
+
+- fail:
+    msg: Operations logs destination is required
+  when: not openshift_logging_fluentd_ops_host or openshift_logging_fluentd_ops_host == ''
+
+- fail:
+    msg: Invalid deployment type, one of ['hosted', 'secure-aggregator', 'secure-host'] allowed
+  when: not openshift_logging_fluentd_deployment_type in __allowed_fluentd_types
+
+- include: determine_version.yaml
 
 # allow passing in a tempdir
 - name: Create temp directory for doing work in
@@ -16,14 +23,20 @@
   register: mktemp
   changed_when: False
   check_mode: no
-#  when: not openshift_logging_tempdir
+  when: not openshift_logging_tempdir
+
+- set_fact: tempdir={{ mktemp.stdout }}
+  when: not openshift_logging_tempdir
+
+- set_fact: tempdir={{ openshift_logging_tempdir }}
+  when: openshift_logging_tempdir
 
 - name: Copy the admin client config(s)
   command: >
-    cp {{ openshift_master_config_dir }}/admin.kubeconfig {{ mktemp.stdout }}/admin.kubeconfig
+    cp {{ openshift_master_config_dir }}/admin.kubeconfig {{ tempdir }}/admin.kubeconfig
   changed_when: False
   check_mode: no
-#  when: not openshift_logging_tempdir
+when: not openshift_logging_tempdir
 
 # we want to make sure we have all the necessary components here
 
@@ -31,7 +44,7 @@
 - name: Create Fluentd service account
   oc_serviceaccount:
     state: present
-    kubeconfig: {{ mktemp.stdout }}/admin.kubeconfig
+    kubeconfig: {{ tempdir }}/admin.kubeconfig
     name: aggregated-logging-fluentd
     namespace: {{ openshift_logging_namespace }}
     image_pull_secrets: {{ openshift_logging_pull_secrets | default(None) }}
@@ -39,71 +52,71 @@
 # set service account scc
 - name: Set privileged permissions for Fluentd
   oc_adm_policy_user:
-    kubconfig: {{ mktemp.stdout }}/admin.kubeconfig
+    kubconfig: {{ tempdir }}/admin.kubeconfig
     namespace: {{ openshift_logging_namespace }}
     resource_kind: scc
     resource_name: privileged
     state: present
-    user: system:serviceaccount:{{openshift_logging_namespace}}:aggregated-logging-fluentd
+    user: system:serviceaccount:{{ openshift_logging_namespace }}:aggregated-logging-fluentd
 
 # set service account permissions
 - name: Set cluster-reader permissions for Fluentd
   oc_adm_policy_user:
-    kubeconfig: {{ mktemp.stdout }}/admin.kubeconfig
+    kubeconfig: {{ tempdir }}/admin.kubeconfig
     namespace: {{ openshift_logging_namespace }}
     resource_kind: cluster-role
     resource_name: cluster-reader
     state: present
-    user: system:serviceaccount:{{openshift_logging_namespace}}:aggregated-logging-fluentd
+    user: system:serviceaccount:{{ openshift_logging_namespace }}:aggregated-logging-fluentd
 
 # create Fluentd configmap
 - block:
     - copy:
         src: fluent.conf
-        dest: "{{mktemp.stdout}}/fluent.conf"
+        dest: "{{ tempdir }}/fluent.conf"
       when: fluentd_config_contents is undefined
       changed_when: no
 
     - copy:
         src: fluentd-throttle-config.yaml
-        dest: "{{mktemp.stdout}}/fluentd-throttle-config.yaml"
+        dest: "{{ tempdir }}/fluentd-throttle-config.yaml"
       when: fluentd_throttle_contents is undefined
       changed_when: no
 
     - copy:
         src: secure-forward.conf
-        dest: "{{mktemp.stdout}}/secure-forward.conf"
+        dest: "{{ tempdir }}/secure-forward.conf"
       when: fluentd_securefoward_contents is undefined
       changed_when: no
 
     - copy:
-        content: "{{fluentd_config_contents}}"
-        dest: "{{mktemp.stdout}}/fluent.conf"
+        content: "{{ fluentd_config_contents }}"
+        dest: "{{ tempdir }}/fluent.conf"
       when: fluentd_config_contents is defined
       changed_when: no
 
     - copy:
-        content: "{{fluentd_throttle_contents}}"
-        dest: "{{mktemp.stdout}}/fluentd-throttle-config.yaml"
+        content: "{{ fluentd_throttle_contents }}"
+        dest: "{{ tempdir }}/fluentd-throttle-config.yaml"
       when: fluentd_throttle_contents is defined
       changed_when: no
 
     - copy:
-        content: "{{fluentd_secureforward_contents}}"
-        dest: "{{mktemp.stdout}}/secure-forward.conf"
+        content: "{{ fluentd_secureforward_contents }}"
+        dest: "{{ tempdir }}/secure-forward.conf"
       when: fluentd_secureforward_contents is defined
       changed_when: no
 
     - command: >
-        {{ openshift.common.client_binary }} --config={{ mktemp.stdout }}/admin.kubeconfig create configmap logging-fluentd
-        --from-file=fluent.conf={{mktemp.stdout}}/fluent.conf --from-file=throttle-config.yaml={{mktemp.stdout}}/fluentd-throttle-config.yaml
-        --from-file=secure-forward.conf={{mktemp.stdout}}/secure-forward.conf -o yaml --dry-run
+        {{ openshift.common.client_binary }} --config={{ tempdir }}/admin.kubeconfig create configmap logging-fluentd
+        --from-file=fluent.conf={{ tempdir }}/fluent.conf --from-file=throttle-config.yaml={{ tempdir }}/fluentd-throttle-config.yaml
+        --from-file=secure-forward.conf={{ tempdir }}/secure-forward.conf -o yaml --dry-run
       register: fluentd_configmap
       changed_when: no
 
     - copy:
-        content: "{{fluentd_configmap.stdout}}"
-        dest: "{{mktemp.stdout}}/templates/logging-fluentd-configmap.yaml"
+        content: "{{ fluentd_configmap.stdout }}"
+        dest: "{{ tempdir }}/templates/logging-fluentd-configmap.yaml"
       when: fluentd_configmap.stdout is defined
       changed_when: no
   check_mode: no
@@ -111,66 +124,72 @@
 - name: Set logging-fluentd configmap
   oc_obj:
     state: present
-    kubeconfig: {{ mktemp.stdout }}/admin.kubeconfig
+    kubeconfig: {{ tempdir }}/admin.kubeconfig
     name: logging-fluentd
     namespace: {{ opneshift_logging_namespace }}
     kind: configmap
     files:
     - name: logging-fluentd-configmap
-      path: {{ mktemp.stdout }}/templates/logging-fluentd-configmap.yaml
+      path: {{ tempdir }}/templates/logging-fluentd-configmap.yaml
     delete_after: true
 
 # create Fluentd secret
 - name: Retrieving the cert to use when generating secrets for Fluentd
   slurp:
-    src: "{{generated_certs_dir}}/{{item.file}}"
+    src: "{{ generated_certs_dir }}/{{ item.file }}"
   register: key_pairs
   with_items:
     - { name: "ca_file", file: "ca.crt" }
     - { name: "fluentd_key", file: "system.logging.fluentd.key"}
     - { name: "fluentd_cert", file: "system.logging.fluentd.crt"}
 
+# TODO: add aggregation secrets if necessary
 - name: Set logging-fluentd secret
   oc_secret:
     state: present
-    kubeconfig: {{ mktemp.stdout }}/admin.kubeconfig
+    kubeconfig: {{ tempdir }}/admin.kubeconfig
     name: logging-fluentd
     namespace: {{ openshift_logging_namespace }}
     contents:
     - path: ca
-      data: "{{key_pairs | entry_from_named_pair('ca_file')| b64decode }}"
+      data: "{{ key_pairs | entry_from_named_pair('ca_file') | b64decode }}"
     - path: key
-      data: "{{key_pairs | entry_from_named_pair('fluentd_key')| b64decode }}"
+      data: "{{ key_pairs | entry_from_named_pair('fluentd_key') | b64decode }}"
     - path: cert
-      data: "{{key_pairs | entry_from_named_pair('fluentd_cert')| b64decode }}"
+      data: "{{ key_pairs | entry_from_named_pair('fluentd_cert') | b64decode }}"
 
 # create Fluentd daemonset
+
+# this should change based on the type of fluentd deployment to be done...
+# TODO: pass in aggregation configurations
 - name: Generate logging-fluentd daemonset definition
   template:
     src: {{ fluentd_version }}/fluentd.j2
-    dest: {{mktemp.stdout}}/templates/logging-fluentd.yaml
+    dest: {{ tempdir }}/templates/logging-fluentd.yaml
   vars:
     daemonset_name: logging-fluentd
     daemonset_component: fluentd
     daemonset_container_name: fluentd-elasticsearch
     daemonset_serviceAccount: aggregated-logging-fluentd
-    ops_host: "{{ fluentd_ops_host }}"
-    ops_port: "{{ fluentd_ops_port }}"
-    fluentd_nodeselector_key: "{{openshift_logging_fluentd_nodeselector.keys()[0]}}"
-    fluentd_nodeselector_value: "{{openshift_logging_fluentd_nodeselector.values()[0]}}"
+    app_host: "{{ openshift_logging_fluentd_app_host }}"
+    app_port: "{{ openshift_logging_fluentd_app_port }}"
+    ops_host: "{{ openshift_logging_fluentd_ops_host }}"
+    ops_port: "{{ openshift_logging_fluentd_ops_port }}"
+    fluentd_nodeselector_key: "{{ openshift_logging_fluentd_nodeselector.keys()[0] }}"
+    fluentd_nodeselector_value: "{{ openshift_logging_fluentd_nodeselector.values()[0] }}"
   check_mode: no
   changed_when: no
 
 - name: Set logging-fluentd daemonset
   oc_obj:
     state: present
-    kubeconfig: {{ mktemp.stdout }}/admin.kubeconfig
+    kubeconfig: {{ tempdir }}/admin.kubeconfig
     name: logging-fluentd
     namespace: {{ openshift_logging_namespace }}
     kind: daemonset
     files:
     - name: logging-fluentd
-      path: {{ mktemp.stdout }}/logging-fluentd.yaml
+      path: {{ tempdir }}/logging-fluentd.yaml
     delete_after: true
 
 # Scale up Fluentd
@@ -198,8 +217,8 @@
 
 - name: Delete temp directory
   file:
-    name: "{{ mktemp.stdout }}"
+    name: "{{ tempdir }}"
     state: absent
   changed_when: False
   check_mode: no
-#  when: not openshift_logging_tempdir
+  when: not openshift_logging_tempdir
