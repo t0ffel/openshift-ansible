@@ -1,0 +1,111 @@
+---
+- fail:
+    msg: Invalid deployment type, one of ['data-master', 'data-client', 'master', 'client'] allowed
+  when: not openshift_logging_es_deployment_type in __allowed_es_types
+
+- fail:
+    msg: openshift_master_config_dir required for copying admin.kubeconfig for executing OCP commands
+  when:
+  - not openshift_logging_tempdir or openshift_logging_tempdir == ''
+  - openshift_master_config_dir is undefined or not openshift_master_config_dir
+
+- fail:
+    msg: openshift_client_binary required for executing OCP commands
+  when:
+  - openshift_client_binary is undefined or not openshift_client_binary
+
+- include: determine_version.yaml
+
+# allow passing in a tempdir
+- name: Create temp directory for doing work in
+  command: mktemp -d /tmp/openshift-logging-ansible-XXXXXX
+  register: mktemp
+  changed_when: False
+  check_mode: no
+  when: not openshift_logging_tempdir or openshift_logging_tempdir == ''
+
+- set_fact: tempdir="{{ mktemp.stdout }}"
+  when: not openshift_logging_tempdir
+
+- set_fact: tempdir="{{ openshift_logging_tempdir }}"
+  when: openshift_logging_tempdir
+
+- name: Copy the admin client config(s)
+  command: >
+    cp {{ openshift_master_config_dir }}/admin.kubeconfig {{ tempdir }}/admin.kubeconfig
+  changed_when: False
+  check_mode: no
+  when: not openshift_logging_tempdir or openshift_logging_tempdir == ''
+
+- name: Create templates subdirectory
+  file:
+    state: directory
+    path: "{{ tempdir }}/templates"
+    mode: 0755
+  changed_when: False
+  check_mode: no
+  when: not openshift_logging_tempdir or openshift_logging_tempdir == ''
+
+# we want to make sure we have all the necessary components here
+
+# service account
+- name: Create ES service account
+  oc_serviceaccount:
+    state: present
+    kubeconfig: "{{ tempdir }}/admin.kubeconfig"
+    name: "aggregated-logging-elasticsearch"
+    namespace: "{{ openshift_logging_namespace }}"
+    image_pull_secrets: "{{ openshift_logging_image_pull_secret }}"
+  when: openshift_logging_image_pull_secret != ''
+
+- name: Create ES service account
+  oc_serviceaccount:
+    state: present
+    kubeconfig: "{{ tempdir }}/admin.kubeconfig"
+    name: "aggregated-logging-elasticsearch"
+    namespace: "{{ openshift_logging_namespace }}"
+  when:
+  - openshift_logging_image_pull_secret == ''
+
+# rolebinding reader
+# TODO: we need to create this will oc_obj still
+- copy:
+    src: rolebinding-reader.yml
+    dest: "{{ tempdir }}/rolebinding-reader.yml"
+
+- name: Create rolebinding-reader role
+  oc_obj:
+    state: present
+    kubeconfig: "{{ tempdir }}/admin.kubeconfig"
+    name: "rolebinding-reader"
+    kind: clusterrole
+    namespace: "{{ openshift_logging_namespace }}"
+    files:
+    - "{{ tempdir }}/rolebinding-reader.yml"
+
+# SA roles
+- name: Set rolebinding-reader permissions for ES
+  oc_adm_policy_user:
+    kubeconfig: "{{ tempdir }}/admin.kubeconfig"
+    namespace: "{{ openshift_logging_namespace }}"
+    resource_kind: cluster-role
+    resource_name: rolebinding-reader
+    state: present
+    user: "system:serviceaccount:{{ openshift_logging_namespace }}:aggregated-logging-elasticsearch"
+
+# configmap
+# secret
+# storage
+# DC
+# scale up
+
+# migrate?
+
+
+- name: Delete temp directory
+  file:
+    name: "{{ tempdir }}"
+    state: absent
+  changed_when: False
+  check_mode: no
+  when: not openshift_logging_tempdir or openshift_logging_tempdir == ''

@@ -1,0 +1,4 @@
+---
+__latest_es_version: "3_5"
+__allowed_es_versions: ["3_5"]
+__allowed_es_types: ["data-master", "data-client", "master", "client"]
