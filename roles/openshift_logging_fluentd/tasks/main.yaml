@@ -164,8 +164,7 @@
     namespace: "{{ openshift_logging_namespace }}"
     kind: configmap
     files:
-    - name: logging-fluentd-configmap
-      path: "{{ tempdir }}/templates/logging-fluentd-configmap.yaml"
+    - "{{ tempdir }}/templates/logging-fluentd-configmap.yaml"
     delete_after: true
 
 # create Fluentd secret

@@ -14,6 +14,8 @@
   when:
   - openshift_client_binary is undefined or not openshift_client_binary
 
+- set_fact: elasticsearch_name="{{ 'logging-elasticsearch' ~ ( (openshift_logging_es_ops_deployment | default(false) | bool) | ternary('-ops', '')) }}"
+
 - include: determine_version.yaml
 
 # allow passing in a tempdir
@@ -30,6 +32,7 @@
 - set_fact: tempdir="{{ openshift_logging_tempdir }}"
   when: openshift_logging_tempdir
 
+# This is no longer needed apparently
 - name: Copy the admin client config(s)
   command: >
     cp {{ openshift_master_config_dir }}/admin.kubeconfig {{ tempdir }}/admin.kubeconfig
@@ -37,6 +40,7 @@
   check_mode: no
   when: not openshift_logging_tempdir or openshift_logging_tempdir == ''
 
+# This may not be necessary in this role
 - name: Create templates subdirectory
   file:
     state: directory
@@ -52,7 +56,6 @@
 - name: Create ES service account
   oc_serviceaccount:
     state: present
-    kubeconfig: "{{ tempdir }}/admin.kubeconfig"
     name: "aggregated-logging-elasticsearch"
     namespace: "{{ openshift_logging_namespace }}"
     image_pull_secrets: "{{ openshift_logging_image_pull_secret }}"
@@ -61,14 +64,12 @@
 - name: Create ES service account
   oc_serviceaccount:
     state: present
-    kubeconfig: "{{ tempdir }}/admin.kubeconfig"
     name: "aggregated-logging-elasticsearch"
     namespace: "{{ openshift_logging_namespace }}"
   when:
   - openshift_logging_image_pull_secret == ''
 
 # rolebinding reader
-# TODO: we need to create this will oc_obj still
 - copy:
     src: rolebinding-reader.yml
     dest: "{{ tempdir }}/rolebinding-reader.yml"
@@ -76,27 +77,124 @@
 - name: Create rolebinding-reader role
   oc_obj:
     state: present
-    kubeconfig: "{{ tempdir }}/admin.kubeconfig"
     name: "rolebinding-reader"
     kind: clusterrole
     namespace: "{{ openshift_logging_namespace }}"
     files:
     - "{{ tempdir }}/rolebinding-reader.yml"
+    delete_after: true
 
 # SA roles
 - name: Set rolebinding-reader permissions for ES
   oc_adm_policy_user:
-    kubeconfig: "{{ tempdir }}/admin.kubeconfig"
+    state: present
     namespace: "{{ openshift_logging_namespace }}"
     resource_kind: cluster-role
     resource_name: rolebinding-reader
-    state: present
     user: "system:serviceaccount:{{ openshift_logging_namespace }}:aggregated-logging-elasticsearch"
 
 # configmap
+- template:
+    src: "{{ es_version }}/elasticsearch-logging.yml.j2"
+    dest: "{{ tempdir }}/elasticsearch-logging.yml"
+  when: es_logging_contents is undefined
+  changed_when: no
+
+- template:
+    src: "{{ es_version }}/elasticsearch.yml.j2"
+    dest: "{{ tempdir }}/elasticsearch.yml"
+  vars:
+    - allow_cluster_reader: "{{ openshift_logging_es_ops_allow_cluster_reader | lower | default('false') }}"
+  when: es_config_contents is undefined
+  changed_when: no
+
+- copy:
+    content: "{{ es_logging_contents }}"
+    dest: "{{ tempdir }}/elasticsearch-logging.yml"
+  when: es_logging_contents is defined
+  changed_when: no
+
+- copy:
+    content: "{{ es_config_contents }}"
+    dest: "{{ tempdir }}/elasticsearch.yml"
+  when: es_config_contents is defined
+  changed_when: no
+
+- name: Create ES configmap
+  oc_configmap:
+    state: present
+    name: "{{ elasticsearch_name }}-{{ openshift_logging_es_deployment_type }}"
+    namespace: "{{ openshift_logging_namespace }}"
+    from_file:
+      elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
+      logging.yml: "{{ tempdir }}/elasticsearch-logging.yml"
+  when:
+
+
 # secret
+- name: Set ES secret
+  oc_secret:
+    state: present
+    name: "logging-elasticsearch"
+    namespace: "{{ openshift_logging_namespace }}"
+    files:
+    - name: key
+      path: "{{ generated_certs_dir }}/logging-es.jks"
+    - name: truststore
+      path: "{{ generated_certs_dir }}/truststore.jks"
+    - name: searchguard.key
+      path: "{{ generated_certs_dir }}/elasticsearch.jks"
+    - name: searchguard.truststore
+      path: "{{ generated_certs_dir }}/truststore.jks"
+    - name: admin-key
+      path: "{{ generated_certs_dir }}/system.admin.key"
+    - name: admin-cert
+      path: "{{ generated_certs_dir }}/system.admin.crt"
+    - name: admin-ca
+      path: "{{ generated_certs_dir }}/ca.crt"
+    - name: admin.jks
+      path: "{{ generated_certs_dir }}/system.admin.jks"
+
 # storage
+# TODO: do we want to use oc_volume instead?
+# TODO: update name to be based on storage prefix
+# TODO: only create if necessary -- try to reuse?
+- name: Creating ES storage template
+  template:
+    src: "common/pvc.j2"
+    dest: "{{ tempdir }}/templates/logging-es-pvc.yml"
+  vars:
+    obj_name: "{{ claim_name }}"
+    size: "{{ es_pvc_size }}"
+    access_modes: "{{ es_access_modes | list }}"
+    pv_selector: "{{ es_pv_selector }}"
+  when: not es_pvc_dynamic
+
+- name: Creating ES storage template
+  template:
+    src: "common/pvc.j2"
+    dest: "{{ tempdir }}/templates/logging-es-pvc.yml"
+  vars:
+    obj_name: "{{ claim_name }}"
+    size: "{{ es_pvc_size }}"
+    access_modes: "{{ es_access_modes | list }}"
+    pv_selector: "{{ es_pv_selector }}"
+    annotations:
+      volume.alpha.kubernetes.io/storage-class: "dynamic"
+  when: es_pvc_dynamic
+
+- name: Setting ES storage
+  oc_obj:
+    state: present
+    name: "logging-es-1"
+    namespace: "{{ openshift_logging_namespace }}"
+    files:
+    - "{{ tempdir }}/templates/logging-es-pvc.yml"
+    delete_after: true
+
 # DC
+  # use name convention -- "{{ elasticsearch_name }}-{{ openshift_logging_es_deployment_type }}"
+  # matches configmap name for binding
 # scale up
 
 # migrate?
