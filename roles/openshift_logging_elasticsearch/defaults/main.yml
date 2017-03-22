@@ -13,8 +13,24 @@ openshift_logging_es_nodeselector: ""
 openshift_logging_es_cpu_limit: 100m
 openshift_logging_es_memory_limit: 512Mi
 
-# Fluentd deployment type
+# ES deployment type
 openshift_logging_es_deployment_type: "data-master"
+
+# One of ['emptydir', 'pvc', 'hostmount']
+openshift_logging_es_storage_type: "emptydir"
+
+# hostmount options
+openshift_logging_es_hostmount_path: ""
+
+# pvc options
+# the name of the PVC we will bind to -- create it if it does not exist
+openshift_logging_es_pvc_name: ""
+
+# required if the PVC does not already exist
+openshift_logging_es_pvc_size: ""
+openshift_logging_es_pvc_dynamic: false
+openshift_logging_es_pvc_pv_selector: {}
+openshift_logging_es_pvc_access_modes: ['ReadWriteOnce']
 
 # this is used to determine if this is an operations deployment or a non-ops deployment
 # simply used for naming purposes

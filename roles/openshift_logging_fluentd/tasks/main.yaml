@@ -102,7 +102,7 @@
 # create Fluentd configmap
 - block:
     - template:
-        src: "{{ fluentd_version }}/fluent.conf.j2"
+        src: fluent.conf.j2
         dest: "{{ tempdir }}/fluent.conf"
       vars:
         deploy_type: "{{ openshift_logging_fluentd_deployment_type }}"
@@ -110,13 +110,13 @@
       changed_when: no
 
     - copy:
-        src: "{{ fluentd_version }}/fluentd-throttle-config.yaml"
+        src: fluentd-throttle-config.yaml
         dest: "{{ tempdir }}/fluentd-throttle-config.yaml"
       when: fluentd_throttle_contents is undefined
       changed_when: no
 
     - copy:
-        src: "{{ fluentd_version }}/secure-forward.conf"
+        src: secure-forward.conf
         dest: "{{ tempdir }}/secure-forward.conf"
       when: fluentd_securefoward_contents is undefined
 
@@ -153,8 +153,6 @@
       when: fluentd_configmap.stdout is defined
       changed_when: no
   check_mode: no
-
-- debug: var=fluentd_configmap.stdout
 
 - name: Set logging-fluentd configmap
   oc_obj:

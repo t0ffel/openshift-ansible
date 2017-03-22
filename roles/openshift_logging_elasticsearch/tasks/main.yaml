@@ -95,13 +95,13 @@
 
 # configmap
 - template:
-    src: "{{ es_version }}/elasticsearch-logging.yml.j2"
+    src: elasticsearch-logging.yml.j2
     dest: "{{ tempdir }}/elasticsearch-logging.yml"
   when: es_logging_contents is undefined
   changed_when: no
 
 - template:
-    src: "{{ es_version }}/elasticsearch.yml.j2"
+    src: elasticsearch.yml.j2
     dest: "{{ tempdir }}/elasticsearch.yml"
   vars:
     - allow_cluster_reader: "{{ openshift_logging_es_ops_allow_cluster_reader | lower | default('false') }}"
@@ -128,7 +128,7 @@
     from_file:
       elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
       logging.yml: "{{ tempdir }}/elasticsearch-logging.yml"
-  when:
+#  when:
 
 
 # secret
@@ -156,45 +156,65 @@
       path: "{{ generated_certs_dir }}/system.admin.jks"
 
 # storage
-# TODO: do we want to use oc_volume instead?
-# TODO: update name to be based on storage prefix
-# TODO: only create if necessary -- try to reuse?
 - name: Creating ES storage template
   template:
-    src: "common/pvc.j2"
+    src: pvc.j2
     dest: "{{ tempdir }}/templates/logging-es-pvc.yml"
   vars:
-    obj_name: "{{ claim_name }}"
-    size: "{{ es_pvc_size }}"
-    access_modes: "{{ es_access_modes | list }}"
-    pv_selector: "{{ es_pv_selector }}"
-  when: not es_pvc_dynamic
+    obj_name: "{{ openshift_logging_es_pvc_name }}"
+    size: "{{ openshift_logging_es_pvc_size }}"
+    access_modes: "{{ openshift_logging_es_pvc_access_modes | list }}"
+    pv_selector: "{{ openshift_logging_es_pvc_pv_selector }}"
+  when: not openshift_logging_es_pvc_dynamic
 
 - name: Creating ES storage template
   template:
-    src: "common/pvc.j2"
+    src: pvc.j2
     dest: "{{ tempdir }}/templates/logging-es-pvc.yml"
   vars:
-    obj_name: "{{ claim_name }}"
-    size: "{{ es_pvc_size }}"
-    access_modes: "{{ es_access_modes | list }}"
-    pv_selector: "{{ es_pv_selector }}"
+    obj_name: "{{ openshift_logging_es_pvc_name }}"
+    size: "{{ openshift_logging_es_pvc_size }}"
+    access_modes: "{{ openshift_logging_es_pvc_access_modes | list }}"
+    pv_selector: "{{ openshift_logging_es_pvc_pv_selector }}"
     annotations:
       volume.alpha.kubernetes.io/storage-class: "dynamic"
-  when: es_pvc_dynamic
+  when: openshift_logging_es_pvc_dynamic
 
-- name: Setting ES storage
+- name: Set ES storage
   oc_obj:
     state: present
-    name: "logging-es-1"
+    name: "{{ openshift_logging_es_pvc_name }}"
     namespace: "{{ openshift_logging_namespace }}"
     files:
     - "{{ tempdir }}/templates/logging-es-pvc.yml"
     delete_after: true
 
 # DC
-  # use name convention -- "{{ elasticsearch_name }}-{{ openshift_logging_es_deployment_type }}"
-  # matches configmap name for binding
+- name: Create ES dc templates
+  template:
+    src: es.j2
+    dest: "{{ tempdir }}/templates/logging-es-dc.yml"
+  vars:
+    component: "{{ 'es' ~ ( (openshift_logging_es_ops_deployment | default(false) | bool) | ternary('-ops', '') ) }}"
+    es_configmap: "{{ elasticsearch_name }}-{{ openshift_logging_es_deployment_type }}"
+    es_cluster_name: "{{ component }}"
+    deploy_name_prefix: "logging-{{ component }}"
+    deploy_name: "{{ deploy_name_prefix }}-{{ 'abcdefghijklmnopqrstuvwxyz0123456789' | random_word(8) }}"
+    image: "{{ openshift_logging_image_prefix }}logging-elasticsearch:{{ openshift_logging_image_version }}"
+    es_cluster_name: "{{ component }}"
+    es_cpu_limit: "{{ openshift_logging_es_cpu_limit }}"
+    es_memory_limit: "{{ openshift_logging_es_memory_limit }}"
+    es_node_selector: "{{ openshift_logging_es_nodeselector | default({}) }}"
+
+- name: Set ES dc
+  oc_obj:
+    state: present
+    name: logging-es
+    namespace: "{{ openshift_logging_namespace }}"
+    files:
+    - "{{ tempdir }}/templates/logging-es-dc.yml"
+    delete_after: true
+
 # scale up
 
 # migrate?
