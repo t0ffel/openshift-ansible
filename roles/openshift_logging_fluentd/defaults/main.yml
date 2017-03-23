@@ -14,6 +14,9 @@ openshift_logging_fluentd_cpu_limit: 100m
 openshift_logging_fluentd_memory_limit: 512Mi
 openshift_logging_fluentd_hosts: ['--all']
 
+# float time in seconds to wait between node labelling
+openshift_logging_fluentd_label_delay: '0.5'
+
 # Fluentd deployment type
 openshift_logging_fluentd_deployment_type: "hosted"
 

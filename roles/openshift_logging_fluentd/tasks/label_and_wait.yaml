@@ -6,11 +6,5 @@
     state: add
     labels: "{{ openshift_logging_fluentd_nodeselector | oo_dict_to_list_of_dict }}"
 
-# give each pod 2 minutes to either start or fail
-- command: >
-    /usr/bin/oc get pods -o jsonpath='{.items[?(@.spec.nodeName == "{{ node }}")].status.phase}'
-  register: fluentd_status
-  until: fluentd_status.stdout in ['Running', 'Failed']
-  retries: 12
-  delay: 10
-  changed_when: false
+# wait half a second between labels
+- command: sleep {{ openshift_logging_fluentd_label_delay | default('.5') }}
