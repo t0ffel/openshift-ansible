@@ -196,7 +196,7 @@
 # TODO: pass in aggregation configurations
 - name: Generate logging-fluentd daemonset definition
   template:
-    src: "{{ fluentd_version }}/fluentd.j2"
+    src: fluentd.j2
     dest: "{{ tempdir }}/templates/logging-fluentd.yaml"
   vars:
     daemonset_name: logging-fluentd
@@ -220,8 +220,7 @@
     namespace: "{{ openshift_logging_namespace }}"
     kind: daemonset
     files:
-    - name: logging-fluentd
-      path: "{{ tempdir }}/logging-fluentd.yaml"
+    - "{{ tempdir }}/templates/logging-fluentd.yaml"
     delete_after: true
 
 # Scale up Fluentd
@@ -237,12 +236,9 @@
     openshift_logging_fluentd_hosts: "{{ fluentd_hosts.results.results[0]['items'] | map(attribute='metadata.name') | list }}"
   when: "'--all' in openshift_logging_fluentd_hosts"
 
-- name: Label nodes for Fluentd deployment
-  oc_label:
-    name: "{{ fluentd_host }}"
-    kind: node
-    state: add
-    labels: "{{ openshift_logging_fluentd_nodeselector | oo_dict_to_list_of_dict }}"
+- include: label_and_wait.yaml
+  vars:
+    node: "{{ fluentd_host }}"
   with_items: "{{ openshift_logging_fluentd_hosts }}"
   loop_control:
     loop_var: fluentd_host
