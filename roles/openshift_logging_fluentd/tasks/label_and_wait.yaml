@@ -7,4 +7,4 @@
     labels: "{{ openshift_logging_fluentd_nodeselector | oo_dict_to_list_of_dict }}"
 
 # wait half a second between labels
-- command: sleep {{ openshift_logging_fluentd_label_delay | default('.5') }}
+- local_action: command sleep {{ openshift_logging_fluentd_label_delay | default('.5') }}

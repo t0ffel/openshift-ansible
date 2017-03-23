@@ -4,14 +4,14 @@ metadata:
   name: "{{deploy_name}}"
   labels:
     provider: openshift
-    component: "{{component}}"
+    component: elasticsearch
     deployment: "{{deploy_name}}"
     logging-infra: "{{logging_component}}"
 spec:
   replicas: {{replicas|default(0)}}
   selector:
     provider: openshift
-    component: "{{component}}"
+    component: elasticsearch
     deployment: "{{deploy_name}}"
     logging-infra: "{{logging_component}}"
   strategy:
@@ -22,7 +22,7 @@ spec:
       labels:
         logging-infra: "{{logging_component}}"
         provider: openshift
-        component: "{{component}}"
+        component: elasticsearch
         deployment: "{{deploy_name}}"
     spec:
       terminationGracePeriod: 600

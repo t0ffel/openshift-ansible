@@ -104,7 +104,8 @@
     src: elasticsearch.yml.j2
     dest: "{{ tempdir }}/elasticsearch.yml"
   vars:
-    - allow_cluster_reader: "{{ openshift_logging_es_ops_allow_cluster_reader | lower | default('false') }}"
+    allow_cluster_reader: "{{ openshift_logging_es_ops_allow_cluster_reader | lower | default('false') }}"
+    deploy_type: "{{ openshift_logging_es_deployment_type }}"
   when: es_config_contents is undefined
   changed_when: no
 
@@ -183,11 +184,18 @@
 - name: Set ES storage
   oc_obj:
     state: present
+    kind: pvc
     name: "{{ openshift_logging_es_pvc_name }}"
     namespace: "{{ openshift_logging_namespace }}"
     files:
     - "{{ tempdir }}/templates/logging-es-pvc.yml"
     delete_after: true
+
+- set_fact:
+    es_component: "{{ 'es' ~ ( (openshift_logging_es_ops_deployment | default(false) | bool) | ternary('-ops', '') ) }}"
+
+- set_fact:
+    es_deploy_name: "logging-{{ es_component }}-{{ 'abcdefghijklmnopqrstuvwxyz0123456789' | random_word(8) }}"
 
 # DC
 - name: Create ES dc templates
@@ -195,13 +203,12 @@
     src: es.j2
     dest: "{{ tempdir }}/templates/logging-es-dc.yml"
   vars:
-    component: "{{ 'es' ~ ( (openshift_logging_es_ops_deployment | default(false) | bool) | ternary('-ops', '') ) }}"
     es_configmap: "{{ elasticsearch_name }}-{{ openshift_logging_es_deployment_type }}"
-    es_cluster_name: "{{ component }}"
-    deploy_name_prefix: "logging-{{ component }}"
-    deploy_name: "{{ deploy_name_prefix }}-{{ 'abcdefghijklmnopqrstuvwxyz0123456789' | random_word(8) }}"
+    es_cluster_name: "{{ es_component }}"
+    logging_component: "{{ es_component }}"
+    deploy_name: "{{ es_deploy_name }}"
     image: "{{ openshift_logging_image_prefix }}logging-elasticsearch:{{ openshift_logging_image_version }}"
-    es_cluster_name: "{{ component }}"
+    es_cluster_name: "{{ es_component }}"
     es_cpu_limit: "{{ openshift_logging_es_cpu_limit }}"
     es_memory_limit: "{{ openshift_logging_es_memory_limit }}"
     es_node_selector: "{{ openshift_logging_es_nodeselector | default({}) }}"
@@ -209,8 +216,9 @@
 - name: Set ES dc
   oc_obj:
     state: present
-    name: logging-es
+    name: "{{ es_deploy_name }}"
     namespace: "{{ openshift_logging_namespace }}"
+    kind: dc
     files:
     - "{{ tempdir }}/templates/logging-es-dc.yml"
     delete_after: true
