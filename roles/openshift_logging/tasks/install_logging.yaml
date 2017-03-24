@@ -32,15 +32,16 @@
     name: openshift_logging_elasticsearch
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
-    openshift_logging_es_pvc_name: "logging-es-1"
+#    openshift_logging_es_pvc_name: "logging-es-1"
 
 # TODO: add more vars
-#- include_role:
-#    name: openshift_logging_elasticsearch
-#  vars:
-#    openshift_logging_es_ops_deployment: true
-#  when:
-#  - openshift_logging_use_ops
+- include_role:
+    name: openshift_logging_elasticsearch
+  vars:
+    generated_certs_dir: "{{openshift.common.config_base}}/logging"
+    openshift_logging_es_ops_deployment: true
+  when:
+  - openshift_logging_use_ops | bool
 
 - include_role:
     name: openshift_logging_fluentd

@@ -16,6 +16,9 @@ openshift_logging_es_memory_limit: 512Mi
 # ES deployment type
 openshift_logging_es_deployment_type: "data-master"
 
+# ES deployment name
+openshift_logging_es_deployment_name: ""
+
 # One of ['emptydir', 'pvc', 'hostmount']
 openshift_logging_es_storage_type: "emptydir"
 

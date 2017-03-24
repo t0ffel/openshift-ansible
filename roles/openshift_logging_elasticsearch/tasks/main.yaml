@@ -156,7 +156,6 @@
     - name: admin.jks
       path: "{{ generated_certs_dir }}/system.admin.jks"
 
-# storage
 - name: Creating ES storage template
   template:
     src: pvc.j2
@@ -166,7 +165,9 @@
     size: "{{ openshift_logging_es_pvc_size }}"
     access_modes: "{{ openshift_logging_es_pvc_access_modes | list }}"
     pv_selector: "{{ openshift_logging_es_pvc_pv_selector }}"
-  when: not openshift_logging_es_pvc_dynamic
+  when:
+  - openshift_logging_es_storage_type == "pvc"
+  - not openshift_logging_es_pvc_dynamic
 
 - name: Creating ES storage template
   template:
@@ -179,7 +180,9 @@
     pv_selector: "{{ openshift_logging_es_pvc_pv_selector }}"
     annotations:
       volume.alpha.kubernetes.io/storage-class: "dynamic"
-  when: openshift_logging_es_pvc_dynamic
+  when:
+  - openshift_logging_es_storage_type == "pvc"
+  - openshift_logging_es_pvc_dynamic
 
 - name: Set ES storage
   oc_obj:
@@ -190,12 +193,19 @@
     files:
     - "{{ tempdir }}/templates/logging-es-pvc.yml"
     delete_after: true
+  when:
+  - openshift_logging_es_storage_type == "pvc"
 
 - set_fact:
     es_component: "{{ 'es' ~ ( (openshift_logging_es_ops_deployment | default(false) | bool) | ternary('-ops', '') ) }}"
 
 - set_fact:
     es_deploy_name: "logging-{{ es_component }}-{{ 'abcdefghijklmnopqrstuvwxyz0123456789' | random_word(8) }}"
+  when: openshift_logging_es_deployment_name == ""
+
+- set_fact:
+    es_deploy_name: "{{ openshift_logging_es_deployment_name }}"
+  when: openshift_logging_es_deployment_name != ""
 
 # DC
 - name: Create ES dc templates
@@ -208,7 +218,6 @@
     logging_component: "{{ es_component }}"
     deploy_name: "{{ es_deploy_name }}"
     image: "{{ openshift_logging_image_prefix }}logging-elasticsearch:{{ openshift_logging_image_version }}"
-    es_cluster_name: "{{ es_component }}"
     es_cpu_limit: "{{ openshift_logging_es_cpu_limit }}"
     es_memory_limit: "{{ openshift_logging_es_memory_limit }}"
     es_node_selector: "{{ openshift_logging_es_nodeselector | default({}) }}"
@@ -224,9 +233,14 @@
     delete_after: true
 
 # scale up
+- name: Start elasticsearch
+  oc_scale:
+    kind: dc
+    name: "{{ es_deploy_name }}"
+    namespace: "{{ openshift_logging_namespace }}"
+    replicas: 1
 
-# migrate?
-
+## Placeholder for migration when necessary ##
 
 - name: Delete temp directory
   file:
