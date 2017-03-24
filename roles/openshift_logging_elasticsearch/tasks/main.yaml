@@ -121,6 +121,7 @@
   when: es_config_contents is defined
   changed_when: no
 
+# TODO: uncomment once https://github.com/openshift/openshift-ansible/pull/3721 merges
 #- name: Create ES configmap
 #  oc_configmap:
 #    state: present
