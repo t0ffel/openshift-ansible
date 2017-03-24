@@ -9,35 +9,18 @@ openshift_logging_namespace: logging
 openshift_logging_tempdir: ''
 
 ### Common settings
-openshift_logging_es_nodeselector: ""
-openshift_logging_es_cpu_limit: 100m
-openshift_logging_es_memory_limit: 512Mi
+# TODO: copy actual values from openshift_logging/defaults/main.yaml
+openshift_logging_kibana_nodeselector: ""
+openshift_logging_kibana_cpu_limit: 100m
+openshift_logging_kibana_memory_limit: 512Mi
 
-# ES deployment type
-openshift_logging_es_deployment_type: "data-master"
+openshift_logging_kibana_hostname: "kibana.example.com"
 
-# ES deployment name
-openshift_logging_es_deployment_name: ""
-
-# One of ['emptydir', 'pvc', 'hostmount']
-openshift_logging_es_storage_type: "emptydir"
-
-# hostmount options
-openshift_logging_es_hostmount_path: ""
-
-# pvc options
-# the name of the PVC we will bind to -- create it if it does not exist
-openshift_logging_es_pvc_name: ""
-
-# required if the PVC does not already exist
-openshift_logging_es_pvc_size: ""
-openshift_logging_es_pvc_dynamic: false
-openshift_logging_es_pvc_pv_selector: {}
-openshift_logging_es_pvc_access_modes: ['ReadWriteOnce']
+# openshift_logging_kibana_edge_term_policy: ""
 
 # this is used to determine if this is an operations deployment or a non-ops deployment
 # simply used for naming purposes
-openshift_logging_es_ops_deployment: false
+openshift_logging_kibana_ops_deployment: false
 
 # following can be uncommented to provide values for configmaps -- take care when providing file contents as it may cause your cluster to not operate correctly
 #fluentd_config_contents:
