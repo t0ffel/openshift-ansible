@@ -11,10 +11,12 @@
   check_mode: no
   when: not openshift_logging_tempdir or openshift_logging_tempdir == ''
 
-- set_fact: tempdir="{{ mktemp.stdout }}"
+- set_fact:
+    tempdir: "{{ mktemp.stdout }}"
   when: not openshift_logging_tempdir
 
-- set_fact: tempdir="{{ openshift_logging_tempdir }}"
+- set_fact:
+    tempdir: "{{ openshift_logging_tempdir }}"
   when: openshift_logging_tempdir
 
 - name: Create templates subdirectory
@@ -45,23 +47,39 @@
   when:
   - openshift_logging_image_pull_secret == ''
 
-- set_fact: kibana_name=""{{ 'logging-kibana' ~ ( (openshift_logging_kibana_ops_deployment | default(false) | bool) | ternary('-ops', '')) }}"
+- set_fact: kibana_name="{{ 'logging-kibana' ~ ( (openshift_logging_kibana_ops_deployment | default(false) | bool) | ternary('-ops', '')) }}"
+
+- name: Retrieving the cert to use when generating secrets for the logging components
+  slurp:
+    src: "{{ generated_certs_dir }}/{{ item.file }}"
+  register: key_pairs
+  with_items:
+    - { name: "ca_file", file: "ca.crt" }
+    - { name: "kibana_key", file: "system.logging.kibana.key"}
+    - { name: "kibana_cert", file: "system.logging.kibana.crt"}
+    - { name: "kibana_internal_key", file: "kibana-internal.key"}
+    - { name: "kibana_internal_cert", file: "kibana-internal.crt"}
+    - { name: "server_tls", file: "server-tls.json"}
 
 # create routes
-# TODO: set up these certs?
-- set_fact: kibana_key={{ lookup('file', openshift_logging_kibana_key) | b64encode }}
+# TODO: set up these certs differently?
+- set_fact:
+    kibana_key: "{{ lookup('file', openshift_logging_kibana_key) | b64encode }}"
   when: "{{ openshift_logging_kibana_key | trim | length > 0 }}"
   changed_when: false
 
-- set_fact: kibana_cert={{ lookup('file', openshift_logging_kibana_cert) | b64encode }}
+- set_fact:
+    kibana_cert: "{{ lookup('file', openshift_logging_kibana_cert) | b64encode }}"
   when: "{{ openshift_logging_kibana_cert | trim | length > 0 }}"
   changed_when: false
 
-- set_fact: kibana_ca={{ lookup('file', openshift_logging_kibana_ca) | b64encode }}
+- set_fact:
+    kibana_ca: "{{ lookup('file', openshift_logging_kibana_ca) | b64encode }}"
   when: "{{ openshift_logging_kibana_ca | trim | length > 0 }}"
   changed_when: false
 
-- set_fact: kibana_ca={{ key_pairs | entry_from_named_pair('ca_file') }}
+- set_fact:
+    kibana_ca: "{{ key_pairs | entry_from_named_pair('ca_file') }}"
   when: kibana_ca is not defined
   changed_when: false
 
@@ -88,7 +106,7 @@
   oc_obj:
     state: present
     name: "{{ kibana_name }}"
-    namespace: "{{ openshift_logging_namespace"
+    namespace: "{{ openshift_logging_namespace }}"
     kind: route
     files:
     - "{{ tempdir }}/templates/kibana-route.yaml"
@@ -127,17 +145,6 @@
     delete_after: true
 
 # create Kibana secret
-- name: Retrieving the cert to use when generating secrets for the logging components
-  slurp: src="{{ generated_certs_dir }}/{{ item.file }}"
-  register: key_pairs
-  with_items:
-    - { name: "ca_file", file: "ca.crt" }
-    - { name: "kibana_key", file: "system.logging.kibana.key"}
-    - { name: "kibana_cert", file: "system.logging.kibana.crt"}
-    - { name: "kibana_internal_key", file: "kibana-internal.key"}
-    - { name: "kibana_internal_cert", file: "kibana-internal.crt"}
-    - { name: "server_tls", file: "server-tls.json"}
-
 - name: Set Kibana secret
   oc_secret:
     state: present
@@ -180,13 +187,13 @@
     deploy_name: "{{ kibana_name }}"
     image: "{{ openshift_logging_image_prefix }}logging-kibana:{{ openshift_logging_image_version }}"
     proxy_image: "{{ openshift_logging_image_prefix }}logging-auth-proxy:{{ openshift_logging_image_version }}"
-    es_host: logging-es
-    es_port: "{{ openshift_logging_es_port }}"
+    es_host: "{{ openshift_logging_kibana_es_host }}"
+    es_port: "{{ openshift_logging_kibana_es_port }}"
     kibana_cpu_limit: "{{ openshift_logging_kibana_cpu_limit }}"
     kibana_memory_limit: "{{ openshift_logging_kibana_memory_limit }}"
     kibana_proxy_cpu_limit: "{{ openshift_logging_kibana_proxy_cpu_limit }}"
     kibana_proxy_memory_limit: "{{ openshift_logging_kibana_proxy_memory_limit }}"
-    replicas: "{{ kibana_replica_count.stdout | default (0) }}"
+    replicas: "{{ openshift_logging_kibana_replicas | default (0) }}"
     kibana_node_selector: "{{ openshift_logging_kibana_nodeselector | default({}) }}"
 
 - name: Set Kibana DC
@@ -200,6 +207,12 @@
     delete_after: true
 
 # Scale up Kibana -- is this really necessary?
+- name: Start Kibana
+  oc_scale:
+    kind: dc
+    name: "{{ kibana_name }}"
+    namespace: "{{ openshift_logging_namespace }}"
+    replicas: "{{ openshift_logging_kibana_replicas | default (1) }}"
 
 # update master configs?
 

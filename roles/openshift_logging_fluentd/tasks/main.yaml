@@ -25,10 +25,12 @@
   check_mode: no
   when: not openshift_logging_tempdir or openshift_logging_tempdir == ''
 
-- set_fact: tempdir="{{ mktemp.stdout }}"
+- set_fact:
+    tempdir: "{{ mktemp.stdout }}"
   when: not openshift_logging_tempdir
 
-- set_fact: tempdir="{{ openshift_logging_tempdir }}"
+- set_fact:
+    tempdir: "{{ openshift_logging_tempdir }}"
   when: openshift_logging_tempdir
 
 - name: Create templates subdirectory
