@@ -13,6 +13,12 @@ openshift_logging_curator_nodeselector: ""
 openshift_logging_curator_cpu_limit: 100m
 openshift_logging_curator_memory_limit: 512Mi
 
+openshift_logging_curator_es_host: "logging-es"
+openshift_logging_curator_es_port: 9200
+
+# This should not exceed 1, should check for this
+openshift_logging_curator_replicas: 1
+
 # this is used to determine if this is an operations deployment or a non-ops deployment
 # simply used for naming purposes
 openshift_logging_curator_ops_deployment: false

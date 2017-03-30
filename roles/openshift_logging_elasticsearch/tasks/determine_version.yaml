@@ -9,8 +9,7 @@
   when: openshift_logging_image_version == 'latest'
 
 # should we just assume that we will have the correct major version?
-- set_fact:
-    es_version: "{{ openshift_logging_image_version | regex_replace('^[v]?(?P<major>)\.(?P<minor>)[\.]?$', '3_\\g<minor>') }}"
+- set_fact: es_version="{{ openshift_logging_image_version | regex_replace('^[v]?(?P<major>)[\.](?P<minor>)[\.]?$', '3_\\g<minor>') }}"
   when: openshift_logging_image_version != 'latest'
 
 - fail:

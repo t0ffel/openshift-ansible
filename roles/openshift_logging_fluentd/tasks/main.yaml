@@ -119,7 +119,7 @@
   when: fluentd_secureforward_contents is defined
   changed_when: no
 
-- name: Create ES configmap
+- name: Set Fluentd configmap
   oc_configmap:
     state: present
     name: "logging-fluentd"
@@ -130,28 +130,19 @@
       secure-forward.conf: "{{ tempdir }}/secure-forward.conf"
 
 # create Fluentd secret
-- name: Retrieving the cert to use when generating secrets for Fluentd
-  slurp:
-    src: "{{ generated_certs_dir }}/{{ item.file }}"
-  register: key_pairs
-  with_items:
-    - { name: "ca_file", file: "ca.crt" }
-    - { name: "fluentd_key", file: "system.logging.fluentd.key"}
-    - { name: "fluentd_cert", file: "system.logging.fluentd.crt"}
-
 # TODO: add aggregation secrets if necessary
 - name: Set logging-fluentd secret
   oc_secret:
     state: present
     name: logging-fluentd
     namespace: "{{ openshift_logging_namespace }}"
-    contents:
-    - path: ca
-      data: "{{ key_pairs | entry_from_named_pair('ca_file') | b64decode }}"
-    - path: key
-      data: "{{ key_pairs | entry_from_named_pair('fluentd_key') | b64decode }}"
-    - path: cert
-      data: "{{ key_pairs | entry_from_named_pair('fluentd_cert') | b64decode }}"
+    files:
+    - name: ca
+      path: "{{ generated_certs_dir }}/ca.crt"
+    - name: key
+      path: "{{ generated_certs_dir }}/system.logging.fluentd.key"
+    - name: cert
+      path: "{{ generated_certs_dir }}/system.logging.fluentd.crt"
 
 # create Fluentd daemonset
 

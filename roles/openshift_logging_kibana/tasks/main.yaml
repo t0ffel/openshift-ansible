@@ -55,8 +55,8 @@
   register: key_pairs
   with_items:
     - { name: "ca_file", file: "ca.crt" }
-    - { name: "kibana_key", file: "system.logging.kibana.key"}
-    - { name: "kibana_cert", file: "system.logging.kibana.crt"}
+#    - { name: "kibana_key", file: "system.logging.kibana.key"}
+#    - { name: "kibana_cert", file: "system.logging.kibana.crt"}
     - { name: "kibana_internal_key", file: "kibana-internal.key"}
     - { name: "kibana_internal_cert", file: "kibana-internal.crt"}
     - { name: "server_tls", file: "server-tls.json"}
@@ -150,13 +150,13 @@
     state: present
     name: "logging-kibana"
     namespace: "{{ openshift_logging_namespace }}"
-    contents:
-    - path: ca
-      data: "{{ key_pairs | entry_from_named_pair('ca_file') | b64decode }}"
-    - path: key
-      data: "{{ key_pairs | entry_from_named_pair('kibana_key') | b64decode }}"
-    - path: cert
-      data: "{{ key_pairs | entry_from_named_pair('kibana_cert') | b64decode }}"
+    files:
+    - name: ca
+      path: "{{ generated_certs_dir }}/ca.crt"
+    - name: key
+      path: "{{ generated_certs_dir }}/system.logging.kibana.key"
+    - name: cert
+      path: "{{ generated_certs_dir }}/system.logging.kibana.crt"
 
 # create Kibana-proxy secret
 - name: Set Kibana Proxy secret
@@ -164,6 +164,13 @@
     state: present
     name: "logging-kibana-proxy"
     namespace: "{{ openshift_logging_namespace }}"
+#    files:
+#    - name: server-key
+#      path: "{{ generated_certs_dir }}/kibana-internal.key"
+#    - name: server-cert
+#      path: "{{ generated_certs_dir }}/kibana-internal.crt"
+#    - name: server-tls
+#      path: "{{ generated_certs_dir }}/server-tls.json"
     contents:
     - path: oauth-secret
       data: "{{ oauth_secret }}"

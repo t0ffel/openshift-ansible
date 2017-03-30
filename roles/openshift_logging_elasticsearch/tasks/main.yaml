@@ -104,7 +104,7 @@
   when: es_config_contents is defined
   changed_when: no
 
-- name: Create ES configmap
+- name: Set ES configmap
   oc_configmap:
     state: present
     name: "{{ elasticsearch_name }}-{{ openshift_logging_es_deployment_type }}"
@@ -191,7 +191,7 @@
   when: openshift_logging_es_deployment_name != ""
 
 # DC
-- name: Create ES dc templates
+- name: Set ES dc templates
   template:
     src: es.j2
     dest: "{{ tempdir }}/templates/logging-es-dc.yml"
