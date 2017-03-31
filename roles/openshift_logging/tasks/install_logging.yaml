@@ -1,19 +1,8 @@
 ---
-#- name: Gather OpenShift Logging Facts
-#  openshift_logging_facts:
-#    oc_bin: "{{openshift.common.client_binary}}"
-#    admin_kubeconfig: "{{mktemp.stdout}}/admin.kubeconfig"
-#    openshift_logging_namespace: "{{openshift_logging_namespace}}"
-#  tags: logging_facts
-#  check_mode: no
-
-#- name: Validate Elasticsearch cluster size
-#  fail: msg="The openshift_logging_es_cluster_size may only be scaled down manually. Please see official documentation on how to do this."
-#  when: openshift_logging_facts.elasticsearch.deploymentconfigs | length > openshift_logging_es_cluster_size|int
-
-#- name: Validate Elasticsearch Ops cluster size
-#  fail: msg="The openshift_logging_es_ops_cluster_size may only be scaled down manually. Please see official documentation on how to do this."
-#  when: openshift_logging_facts.elasticsearch_ops.deploymentconfigs | length > openshift_logging_es_ops_cluster_size|int
+- name: Gather OpenShift Logging Facts
+  openshift_logging_facts:
+    oc_bin: "{{openshift.common.client_binary}}"
+    openshift_logging_namespace: "{{openshift_logging_namespace}}"
 
 - name: Set logging project
   oc_project:
@@ -33,13 +22,33 @@
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
 
 ## Elasticsearch
+#- name: Collect current ES node count
+#  oc_obj:
+#    state: list
+#    kind: dc
+#    selector: "logging-infra=es"
+#    namespace: "{{ openshift_logging_namespace }}"
+#  register: logging_es_dc
+
+#- debug: var=logging_es_dc
+
+#logging_es_dc.results.results.items
+#@.metadata.name
+#@.spec.template.spec.volumes[name == "elasticsearch-storage"]
+
 # TODO: add more vars
+
+# We don't allow scaling down of ES nodes currently
 - include_role:
     name: openshift_logging_elasticsearch
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
-    openshift_logging_elasticsearch_deployment_name: logging-es-1
-#    openshift_logging_es_pvc_name: "logging-es-1"
+    openshift_logging_elasticsearch_deployment_name: "{{ item.0 }}"
+    openshift_logging_es_pvc_name: "{{ item.1 }}"
+  with_together:
+  - "{{ openshift_logging_facts.elasticsearch.deploymentconfigs }}"
+  - "{{ openshift_logging_facts.elasticsearch.pvcs }}"
+
 
 # TODO: add more vars
 - include_role:
