@@ -6,16 +6,9 @@
   command: mktemp -d /tmp/openshift-logging-ansible-XXXXXX
   register: mktemp
   changed_when: False
-  check_mode: no
-  when: not openshift_logging_tempdir or openshift_logging_tempdir == ''
 
 - set_fact:
     tempdir: "{{ mktemp.stdout }}"
-  when: not openshift_logging_tempdir
-
-- set_fact:
-    tempdir: "{{ openshift_logging_tempdir }}"
-  when: openshift_logging_tempdir
 
 # This may not be necessary in this role
 - name: Create templates subdirectory
@@ -24,8 +17,6 @@
     path: "{{ tempdir }}/templates"
     mode: 0755
   changed_when: False
-  check_mode: no
-  when: not openshift_logging_tempdir or openshift_logging_tempdir == ''
 
 # we want to make sure we have all the necessary components here
 
@@ -129,5 +120,3 @@
     name: "{{ tempdir }}"
     state: absent
   changed_when: False
-  check_mode: no
-  when: not openshift_logging_tempdir or openshift_logging_tempdir == ''

@@ -15,10 +15,22 @@
 #  fail: msg="The openshift_logging_es_ops_cluster_size may only be scaled down manually. Please see official documentation on how to do this."
 #  when: openshift_logging_facts.elasticsearch_ops.deploymentconfigs | length > openshift_logging_es_ops_cluster_size|int
 
-- name: Install logging
-  include: "{{ role_path }}/tasks/install_support.yaml"
-  when: openshift_hosted_logging_install | default(true) | bool
+- name: Set logging project
+  oc_project:
+    state: present
+    name: "{{ openshift_logging_namespace }}"
 
+- name: Create logging cert directory
+  file:
+    path: "{{ openshift.common.config_base }}/logging"
+    state: directory
+    mode: 0755
+  changed_when: False
+  check_mode: no
+
+- include: generate_certs.yaml
+  vars:
+    generated_certs_dir: "{{openshift.common.config_base}}/logging"
 
 ## Elasticsearch
 # TODO: add more vars
@@ -26,6 +38,7 @@
     name: openshift_logging_elasticsearch
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
+    openshift_logging_elasticsearch_deployment_name: logging-es-1
 #    openshift_logging_es_pvc_name: "logging-es-1"
 
 # TODO: add more vars
@@ -33,7 +46,7 @@
     name: openshift_logging_elasticsearch
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
-    openshift_logging_es_ops_deployment: true
+    openshift_logging_elasticsearch_ops_deployment: true
   when:
   - openshift_logging_use_ops | bool
 
@@ -43,7 +56,6 @@
     name: openshift_logging_kibana
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
-#    openshift_logging_es_pvc_name: "logging-es-1"
 
 # TODO: add more vars
 - include_role:
@@ -60,7 +72,6 @@
     name: openshift_logging_curator
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
-#    openshift_logging_es_pvc_name: "logging-es-1"
 
 # TODO: add more vars
 - include_role:

@@ -29,7 +29,7 @@ spec:
       serviceAccountName: aggregated-logging-elasticsearch
       securityContext:
         supplementalGroups:
-        - {{openshift_logging_es_storage_group}}
+        - {{openshift_logging_elasticsearch_storage_group}}
 {% if es_node_selector is iterable and es_node_selector | length > 0 %}
       nodeSelector:
 {% for key, value in es_node_selector.iteritems() %}
@@ -73,7 +73,7 @@ spec:
               value: "logging-{{es_cluster_name}}"
             -
               name: "INSTANCE_RAM"
-              value: "{{openshift_logging_es_memory_limit}}"
+              value: "{{openshift_logging_elasticsearch_memory_limit}}"
             -
               name: "NODE_QUORUM"
               value: "{{es_node_quorum | int}}"
@@ -85,7 +85,7 @@ spec:
               value: "{{es_recover_expected_nodes}}"
             -
               name: "RECOVER_AFTER_TIME"
-              value: "{{openshift_logging_es_recover_after_time}}"
+              value: "{{openshift_logging_elasticsearch_recover_after_time}}"
           volumeMounts:
             - name: elasticsearch
               mountPath: /etc/elasticsearch/secret
@@ -103,12 +103,12 @@ spec:
           configMap:
             name: {{ es_configmap }}
         - name: elasticsearch-storage
-{% if openshift_logging_es_storage_type == 'pvc' %}
+{% if openshift_logging_elasticsearch_storage_type == 'pvc' %}
           persistentVolumeClaim:
-            claimName: {{ openshift_logging_es_pvc_name }}
-{% elif openshift_logging_es_storage_type == 'hostmount' %}
+            claimName: {{ openshift_logging_elasticsearch_pvc_name }}
+{% elif openshift_logging_elasticsearch_storage_type == 'hostmount' %}
           hostPath:
-            path: {{ openshift_logging_es_hostmount_path }}
+            path: {{ openshift_logging_elasticsearch_hostmount_path }}
 {% else %}
           emptydir: {}
 {% endif %}
