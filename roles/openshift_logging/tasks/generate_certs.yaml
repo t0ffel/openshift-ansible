@@ -17,7 +17,7 @@
 
 - name: Generate certificates
   command: >
-    {{ openshift.common.admin_binary }} --config={{ mktemp.stdout }}/admin.kubeconfig ca create-signer-cert
+    {{ openshift.common.admin_binary }} ca create-signer-cert
     --key={{generated_certs_dir}}/ca.key --cert={{generated_certs_dir}}/ca.crt
     --serial={{generated_certs_dir}}/ca.serial.txt --name=logging-signer-test
   check_mode: no
@@ -36,14 +36,14 @@
     - top_dir: '{{generated_certs_dir}}'
   when: not signing_conf_file.stat.exists
 
-- include: procure_server_certs.yaml
-  loop_control:
-    loop_var: cert_info
-  with_items:
-    - procure_component: kibana
-    - procure_component: kibana-ops
-    - procure_component: kibana-internal
-      hostnames: "kibana, kibana-ops, {{openshift_logging_kibana_hostname}}, {{openshift_logging_kibana_ops_hostname}}"
+  #- include: procure_server_certs.yaml
+  #  loop_control:
+  #    loop_var: cert_info
+  #  with_items:
+  #    - procure_component: kibana
+  #    - procure_component: kibana-ops
+  #    - procure_component: kibana-internal
+  #      hostnames: "kibana, kibana-ops, {{openshift_logging_kibana_hostname}}, {{openshift_logging_kibana_ops_hostname}}"
 
 - name: Copy proxy TLS configuration file
   copy: src=server-tls.json dest={{generated_certs_dir}}/server-tls.json

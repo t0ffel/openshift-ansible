@@ -1,0 +1,7 @@
+---
+- hosts: masters[0]
+  roles:
+  - role: openshift_logging
+    openshift_hosted_logging_cleanup: no
+    openshift_logging_elasticsearch_image_prefix: "t0ffel/"
+
