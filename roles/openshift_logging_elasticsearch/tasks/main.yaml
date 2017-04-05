@@ -83,6 +83,12 @@
   changed_when: no
 
 - template:
+    src: log4j2.properties.j2
+    dest: "{{ tempdir }}/log4j2.properties"
+  when: es_log4j_contents is undefined
+  changed_when: no
+
+- template:
     src: elasticsearch.yml.j2
     dest: "{{ tempdir }}/elasticsearch.yml"
   vars:
@@ -111,6 +117,7 @@
     from_file:
       elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
       logging.yml: "{{ tempdir }}/elasticsearch-logging.yml"
+      log4j2.properties: "{{ tempdir  }}/log4j2.properties"
 #  when:
 
 

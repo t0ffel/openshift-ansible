@@ -24,6 +24,19 @@ spec:
         provider: openshift
         component: elasticsearch
         deployment: "{{deploy_name}}"
+      annotations:
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+          "name": "sysctl",
+            "image": "centos",
+            "command": ["sysctl", "-w", "vm.max_map_count=262144"],
+            "serviceAccountName": "aggregated-logging-elasticsearch",
+            "serviceAccount": "aggregated-logging-elasticsearch",
+            "securityContext": {
+              "privileged": true
+            }
+          }
+        ]'
     spec:
       terminationGracePeriod: 600
       serviceAccountName: aggregated-logging-elasticsearch
@@ -48,7 +61,7 @@ spec:
               cpu: "{{es_cpu_limit}}"
 {% endif %}
             requests:
-              memory: "512Mi"
+              memory: "4096Mi"
           ports:
             -
               containerPort: 9200
