@@ -1,0 +1,86 @@
+---
+# allow passing in a tempdir
+- name: Create temp directory for doing work in
+  command: mktemp -d /tmp/openshift-logging-ansible-XXXXXX
+  register: mktemp
+  changed_when: False
+
+- set_fact:
+    tempdir: "{{ mktemp.stdout }}"
+
+# configmap
+- template:
+    src: elasticsearch-logging.yml.j2
+    dest: "{{ tempdir }}/elasticsearch-logging.yml"
+  when: es_logging_contents is undefined
+  changed_when: no
+
+- template:
+    src: log4j2.properties.j2
+    dest: "{{ tempdir }}/log4j2.properties"
+  when: es_log4j_contents is undefined
+  changed_when: no
+
+- template:
+    src: elasticsearch.yml.j2
+    dest: "{{ tempdir }}/elasticsearch.yml"
+  vars:
+    allow_cluster_reader: "{{ openshift_logging_elasticsearch_ops_allow_cluster_reader | lower | default('false') }}"
+    deploy_type: "{{ openshift_elasticsearch_deployment_type }}"
+  when: es_config_contents is undefined
+  changed_when: no
+
+- copy:
+    content: "{{ es_logging_contents }}"
+    dest: "{{ tempdir }}/elasticsearch-logging.yml"
+  when: es_logging_contents is defined
+  changed_when: no
+
+- copy:
+    content: "{{ es_config_contents }}"
+    dest: "{{ tempdir }}/elasticsearch.yml"
+  when: es_config_contents is defined
+  changed_when: no
+
+- name: Set ES configmap
+  oc_configmap:
+    state: present
+    name: "{{ openshift_elasticsearch_clustername }}-{{ openshift_elasticsearch_deployment_type }}"
+    namespace: "{{ openshift_elasticsearch_namespace }}"
+    from_file:
+      elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
+      logging.yml: "{{ tempdir }}/elasticsearch-logging.yml"
+      log4j2.properties: "{{ tempdir  }}/log4j2.properties"
+#  when:
+
+
+# secret
+- name: Set ES secret
+  oc_secret:
+    state: present
+    name: "logging-elasticsearch"
+    namespace: "{{ openshift_elasticsearch_namespace }}"
+    files:
+    - name: key
+      path: "{{ generated_certs_dir }}/logging-es.jks"
+    - name: truststore
+      path: "{{ generated_certs_dir }}/truststore.jks"
+    - name: searchguard.key
+      path: "{{ generated_certs_dir }}/elasticsearch.jks"
+    - name: searchguard.truststore
+      path: "{{ generated_certs_dir }}/truststore.jks"
+    - name: admin-key
+      path: "{{ generated_certs_dir }}/system.admin.key"
+    - name: admin-cert
+      path: "{{ generated_certs_dir }}/system.admin.crt"
+    - name: admin-ca
+      path: "{{ generated_certs_dir }}/ca.crt"
+    - name: admin.jks
+      path: "{{ generated_certs_dir }}/system.admin.jks"
+  when: openshift_elasticsearch_secure
+
+- name: Delete temp directory
+  file:
+    name: "{{ tempdir }}"
+    state: absent
+  changed_when: False

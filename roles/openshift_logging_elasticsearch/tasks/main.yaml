@@ -1,222 +1,30 @@
 ---
+- name: Gather OpenShift Logging Facts
+  openshift_elasticsearch_facts:
+    oc_bin: "{{openshift.common.client_binary}}"
+    openshift_namespace: "{{openshift_elasticsearch_namespace}}"
+    elasticsearch_clustername: "{{ openshift_elasticsearch_clustername }}"
+
 - name: Validate Elasticsearch cluster size
-  fail: msg="The openshift_logging_es_cluster_size may only be scaled down manually. Please see official documentation on how to do this."
-  when: openshift_logging_facts.elasticsearch.deploymentconfigs | length > openshift_logging_es_cluster_size|int
+  fail: msg="The openshift_elasticsearch_cluster_size may only be scaled down manually. Please see official documentation on how to do this."
+  when: openshift_elasticsearch_facts.elasticsearch.deploymentconfigs | length > openshift_elasticsearch_cluster_size|int
 
-- name: Validate Elasticsearch Ops cluster size
-  fail: msg="The openshift_logging_es_ops_cluster_size may only be scaled down manually. Please see official documentation on how to do this."
-  when: openshift_logging_facts.elasticsearch_ops.deploymentconfigs | length > openshift_logging_es_ops_cluster_size|int
-
-- fail:
-    msg: Invalid deployment type, one of ['data-master', 'data-client', 'master', 'client'] allowed
-  when: not openshift_logging_elasticsearch_deployment_type in __allowed_es_types
-
-- set_fact: elasticsearch_name="{{ 'logging-elasticsearch' ~ ( (openshift_logging_elasticsearch_ops_deployment | default(false) | bool) | ternary('-ops', '')) }}"
-
-- include: determine_version.yaml
-
-# allow passing in a tempdir
-- name: Create temp directory for doing work in
-  command: mktemp -d /tmp/openshift-logging-ansible-XXXXXX
-  register: mktemp
-  changed_when: False
-
-- set_fact:
-    tempdir: "{{ mktemp.stdout }}"
-
-# This may not be necessary in this role
-- name: Create templates subdirectory
-  file:
-    state: directory
-    path: "{{ tempdir }}/templates"
-    mode: 0755
-  changed_when: False
-
-# we want to make sure we have all the necessary components here
-
-# service account
-- name: Create ES service account
-  oc_serviceaccount:
+- name: Set Elasticsearch project
+  oc_project:
     state: present
-    name: "aggregated-logging-elasticsearch"
-    namespace: "{{ openshift_logging_namespace }}"
-    image_pull_secrets: "{{ openshift_logging_image_pull_secret }}"
-  when: openshift_logging_image_pull_secret != ''
+    name: "{{ openshift_elasticsearch_namespace }}"
 
-- name: Create ES service account
-  oc_serviceaccount:
-    state: present
-    name: "aggregated-logging-elasticsearch"
-    namespace: "{{ openshift_logging_namespace }}"
-  when:
-  - openshift_logging_image_pull_secret == ''
+# Set up service accounts and roles
+- include: "{{ role_path }}/tasks/service_accounts.yaml"
 
-# rolebinding reader
-- copy:
-    src: rolebinding-reader.yml
-    dest: "{{ tempdir }}/rolebinding-reader.yml"
-
-- name: Create rolebinding-reader role
-  oc_obj:
-    state: present
-    name: "rolebinding-reader"
-    kind: clusterrole
-    namespace: "{{ openshift_logging_namespace }}"
-    files:
-    - "{{ tempdir }}/rolebinding-reader.yml"
-    delete_after: true
-
-# SA roles
-- name: Set rolebinding-reader permissions for ES
-  oc_adm_policy_user:
-    state: present
-    namespace: "{{ openshift_logging_namespace }}"
-    resource_kind: cluster-role
-    resource_name: rolebinding-reader
-    user: "system:serviceaccount:{{ openshift_logging_namespace }}:aggregated-logging-elasticsearch"
-
-# view role
-- copy:
-    src: rolebinding-es.yml
-    dest: "{{ tempdir }}/rolebinding-es.yml"
-
-- name: Crete rolebinding for view role
-  oc_obj:
-    state: present
-    name: logging-elasticsearch-view-role
-    kind: rolebinding
-    namespace: "{{ openshift_logging_namespace }}"
-    files:
-    - "{{ tempdir }}/rolebinding-es.yml"
-    delete_after: true
-
-
-# configmap
-- template:
-    src: elasticsearch-logging.yml.j2
-    dest: "{{ tempdir }}/elasticsearch-logging.yml"
-  when: es_logging_contents is undefined
-  changed_when: no
-
-- template:
-    src: log4j2.properties.j2
-    dest: "{{ tempdir }}/log4j2.properties"
-  when: es_log4j_contents is undefined
-  changed_when: no
-
-- template:
-    src: elasticsearch.yml.j2
-    dest: "{{ tempdir }}/elasticsearch.yml"
-  vars:
-    allow_cluster_reader: "{{ openshift_logging_elasticsearch_ops_allow_cluster_reader | lower | default('false') }}"
-    deploy_type: "{{ openshift_logging_elasticsearch_deployment_type }}"
-  when: es_config_contents is undefined
-  changed_when: no
-
-- copy:
-    content: "{{ es_logging_contents }}"
-    dest: "{{ tempdir }}/elasticsearch-logging.yml"
-  when: es_logging_contents is defined
-  changed_when: no
-
-- copy:
-    content: "{{ es_config_contents }}"
-    dest: "{{ tempdir }}/elasticsearch.yml"
-  when: es_config_contents is defined
-  changed_when: no
-
-- name: Set ES configmap
-  oc_configmap:
-    state: present
-    name: "{{ elasticsearch_name }}-{{ openshift_logging_elasticsearch_deployment_type }}"
-    namespace: "{{ openshift_logging_namespace }}"
-    from_file:
-      elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
-      logging.yml: "{{ tempdir }}/elasticsearch-logging.yml"
-      log4j2.properties: "{{ tempdir  }}/log4j2.properties"
-#  when:
-
-
-# secret
-- name: Set ES secret
-  oc_secret:
-    state: present
-    name: "logging-elasticsearch"
-    namespace: "{{ openshift_logging_namespace }}"
-    files:
-    - name: key
-      path: "{{ generated_certs_dir }}/logging-es.jks"
-    - name: truststore
-      path: "{{ generated_certs_dir }}/truststore.jks"
-    - name: searchguard.key
-      path: "{{ generated_certs_dir }}/elasticsearch.jks"
-    - name: searchguard.truststore
-      path: "{{ generated_certs_dir }}/truststore.jks"
-    - name: admin-key
-      path: "{{ generated_certs_dir }}/system.admin.key"
-    - name: admin-cert
-      path: "{{ generated_certs_dir }}/system.admin.crt"
-    - name: admin-ca
-      path: "{{ generated_certs_dir }}/ca.crt"
-    - name: admin.jks
-      path: "{{ generated_certs_dir }}/system.admin.jks"
-
-- name: Creating ES storage template
-  template:
-    src: pvc.j2
-    dest: "{{ tempdir }}/templates/logging-es-pvc.yml"
-  vars:
-    obj_name: "{{ openshift_logging_elasticsearch_pvc_name }}"
-    size: "{{ openshift_logging_elasticsearch_pvc_size }}"
-    access_modes: "{{ openshift_logging_elasticsearch_pvc_access_modes | list }}"
-    pv_selector: "{{ openshift_logging_elasticsearch_pvc_pv_selector }}"
-  when:
-  - openshift_logging_elasticsearch_storage_type == "pvc"
-  - not openshift_logging_elasticsearch_pvc_dynamic
-
-- name: Creating ES storage template
-  template:
-    src: pvc.j2
-    dest: "{{ tempdir }}/templates/logging-es-pvc.yml"
-  vars:
-    obj_name: "{{ openshift_logging_elasticsearch_pvc_name }}"
-    size: "{{ openshift_logging_elasticsearch_pvc_size }}"
-    access_modes: "{{ openshift_logging_elasticsearch_pvc_access_modes | list }}"
-    pv_selector: "{{ openshift_logging_elasticsearch_pvc_pv_selector }}"
-    annotations:
-      volume.alpha.kubernetes.io/storage-class: "dynamic"
-  when:
-  - openshift_logging_elasticsearch_storage_type == "pvc"
-  - openshift_logging_elasticsearch_pvc_dynamic
-
-- name: Set ES storage
-  oc_obj:
-    state: present
-    kind: pvc
-    name: "{{ openshift_logging_elasticsearch_pvc_name }}"
-    namespace: "{{ openshift_logging_namespace }}"
-    files:
-    - "{{ tempdir }}/templates/logging-es-pvc.yml"
-    delete_after: true
-  when:
-  - openshift_logging_elasticsearch_storage_type == "pvc"
-
-- set_fact:
-    es_component: "{{ 'es' ~ ( (openshift_logging_elasticsearch_ops_deployment | default(false) | bool) | ternary('-ops', '') ) }}"
-
-- set_fact:
-    es_deploy_name: "logging-{{ es_component }}-{{ 'abcdefghijklmnopqrstuvwxyz0123456789' | random_word(8) }}"
-  when: openshift_logging_elasticsearch_deployment_name == ""
-
-- set_fact:
-    es_deploy_name: "{{ openshift_logging_elasticsearch_deployment_name }}"
-  when: openshift_logging_elasticsearch_deployment_name != ""
+# Setup all configmaps and secrets
+- include: "{{ role_path }}/tasks/es_node_configuration.yaml"
 
 # Services
 - name: create Elasticsearch 9200 service
   oc_service:
-    namespace: "{{ openshift_logging_namespace }}"
-    name: logging-es
+    namespace: "{{ openshift_elasticsearch_namespace }}"
+    name: "{{ openshift_elasticsearch_clustername  }}"
     ports:
     - name: 9200-tcp
       port: 9200
@@ -230,8 +38,8 @@
 
 - name: create Elasticsearch 9300 service
   oc_service:
-    namespace: "{{ openshift_logging_namespace }}"
-    name: logging-es-cluster
+    namespace: "{{ openshift_elasticsearch_namespace }}"
+    name: "{{ openshift_elasticsearch_clustername  }}-cluster"
     ports:
     - name: 9300-tcp
       port: 9300
@@ -241,43 +49,29 @@
       component: elasticsearch
     clusterip: None
 
-# DC
-- name: Set ES dc templates
-  template:
-    src: es.j2
-    dest: "{{ tempdir }}/templates/logging-es-dc.yml"
+# TODO: add more vars
+# We don't allow scaling down of ES nodes currently
+- include: "{{ role_path }}/tasks/install.yaml"
   vars:
-    es_configmap: "{{ elasticsearch_name }}-{{ openshift_logging_elasticsearch_deployment_type }}"
-    es_cluster_name: "{{ es_component }}"
-    logging_component: "{{ es_component }}"
-    deploy_name: "{{ es_deploy_name }}"
-    image: "{{ openshift_logging_elasticsearch_image_prefix }}elasticsearch:{{ openshift_logging_image_version }}"
-    es_cpu_limit: "{{ openshift_logging_elasticsearch_cpu_limit }}"
-    es_memory_limit: "{{ openshift_logging_elasticsearch_memory_limit }}"
-    es_node_selector: "{{ openshift_logging_elasticsearch_nodeselector | default({}) }}"
+    #generated_certs_dir: "{{openshift.common.config_base}}/logging"
+    openshift_elasticsearch_deployment_name: "{{ item.0 }}"
+    openshift_elasticsearch_pvc_name: "{{ item.1 }}"
 
-- name: Set ES dc
-  oc_obj:
-    state: present
-    name: "{{ es_deploy_name }}"
-    namespace: "{{ openshift_logging_namespace }}"
-    kind: dc
-    files:
-    - "{{ tempdir }}/templates/logging-es-dc.yml"
-    delete_after: true
+    #openshift_logging_elasticsearch_storage_type: "{{ }}"
+    openshift_elasticsearch_pvc_size: "{{ openshift_logging_es_pvc_size }}"
+    openshift_elasticsearch_pvc_dynamic: "{{ openshift_logging_es_pvc_dynamic }}"
+    openshift_elasticsearch_pvc_pv_selector: "{{ openshift_logging_es_pv_selector }}"
 
-# scale up
-- name: Start Elasticsearch
-  oc_scale:
-    kind: dc
-    name: "{{ es_deploy_name }}"
-    namespace: "{{ openshift_logging_namespace }}"
-    replicas: 1
+  with_together:
+  - "{{ openshift_elasticsearch_facts.elasticsearch.deploymentconfigs }}"
+  - "{{ openshift_elasticsearch_facts.elasticsearch.pvcs }}"
 
-## Placeholder for migration when necessary ##
+# Create any new DC that may be required
+- include: "{{ role_path }}/tasks/install.yaml"
+  vars:
+    generated_certs_dir: "{{openshift.common.config_base}}/logging"
+    openshift_elasticsearch_pvc_name: "{{ openshift_es_pvc_prefix }}-{{ ( item|int + ( openshift_elasticsearch_facts.elasticsearch.deploymentconfigs | count ) )|string }}"
 
-- name: Delete temp directory
-  file:
-    name: "{{ tempdir }}"
-    state: absent
-  changed_when: False
+  with_sequence: count={{ ( ( openshift_elasticsearch_cluster_size | int ) - ( openshift_elasticsearch_facts.elasticsearch.deploymentconfigs | count ) ) }}
+
+- debug: var=openshift_elasticsearch_facts

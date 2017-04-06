@@ -1,0 +1,116 @@
+---
+- fail:
+    msg: Invalid deployment type, one of ['data-master', 'data-client', 'master', 'client'] allowed
+  when: not openshift_elasticsearch_deployment_type in __allowed_es_types
+
+- set_fact: elasticsearch_name="{{ 'logging-elasticsearch' ~ ( (openshift_logging_elasticsearch_ops_deployment | default(false) | bool) | ternary('-ops', '')) }}"
+
+- include: determine_version.yaml
+
+# allow passing in a tempdir
+- name: Create temp directory for doing work in
+  command: mktemp -d /tmp/openshift-logging-ansible-XXXXXX
+  register: mktemp
+  changed_when: False
+
+- set_fact:
+    tempdir: "{{ mktemp.stdout }}"
+
+# This may not be necessary in this role
+- name: Create templates subdirectory
+  file:
+    state: directory
+    path: "{{ tempdir }}/templates"
+    mode: 0755
+  changed_when: False
+
+# we want to make sure we have all the necessary components here
+
+- name: Creating ES storage template
+  template:
+    src: pvc.j2
+    dest: "{{ tempdir }}/templates/logging-es-pvc.yml"
+  vars:
+    obj_name: "{{ openshift_elasticsearch_pvc_name }}"
+    size: "{{ openshift_elasticsearch_pvc_size }}"
+    access_modes: "{{ openshift_elasticsearch_pvc_access_modes | list }}"
+    pv_selector: "{{ openshift_elasticsearch_pvc_pv_selector }}"
+  when:
+  - openshift_elasticsearch_storage_type == "pvc"
+  - not openshift_elasticsearch_pvc_dynamic
+
+- name: Creating ES storage template
+  template:
+    src: pvc.j2
+    dest: "{{ tempdir }}/templates/logging-es-pvc.yml"
+  vars:
+    obj_name: "{{ openshift_elasticsearch_pvc_name }}"
+    size: "{{ openshift_elasticsearch_pvc_size }}"
+    access_modes: "{{ openshift_elasticsearch_pvc_access_modes | list }}"
+    pv_selector: "{{ openshift_elasticsearch_pvc_pv_selector }}"
+    annotations:
+      volume.alpha.kubernetes.io/storage-class: "dynamic"
+  when:
+  - openshift_elasticsearch_storage_type == "pvc"
+  - openshift_elasticsearch_pvc_dynamic
+
+- name: Set ES storage
+  oc_obj:
+    state: present
+    kind: pvc
+    name: "{{ openshift_elasticsearch_pvc_name }}"
+    namespace: "{{ openshift_elasticsearch_namespace }}"
+    files:
+    - "{{ tempdir }}/templates/logging-es-pvc.yml"
+    delete_after: true
+  when:
+  - openshift_elasticsearch_storage_type == "pvc"
+
+- set_fact:
+    es_deploy_name: "{{ openshift_elasticsearch_clustername }}-{{ 'abcdefghijklmnopqrstuvwxyz0123456789' | random_word(8) }}"
+  when: openshift_elasticsearch_deployment_name == ""
+
+- set_fact:
+    es_deploy_name: "{{ openshift_elasticsearch_deployment_name }}"
+  when: openshift_elasticsearch_deployment_name != ""
+
+# DC
+- name: Set ES dc templates
+  template:
+    src: es.j2
+    dest: "{{ tempdir }}/templates/logging-es-dc.yml"
+  vars:
+    es_configmap: "{{ openshift_elasticsearch_clustername }}-{{ openshift_elasticsearch_deployment_type }}"
+    es_cluster_name: "{{ openshift_elasticsearch_clustername }}"
+    logging_component: "{{ openshift_elasticsearch_clustername }}"
+    deploy_name: "{{ es_deploy_name }}"
+    image: "{{ openshift_elasticsearch_image_prefix }}elasticsearch:{{ openshift_elasticsearch_image_version }}"
+    es_cpu_limit: "{{ openshift_elasticsearch_cpu_limit }}"
+    es_memory_limit: "{{ openshift_elasticsearch_memory_limit }}"
+    es_node_selector: "{{ openshift_elasticsearch_nodeselector | default({}) }}"
+
+- name: Set ES dc
+  oc_obj:
+    state: present
+    name: "{{ es_deploy_name }}"
+    namespace: "{{ openshift_elasticsearch_namespace }}"
+    kind: dc
+    files:
+    - "{{ tempdir }}/templates/logging-es-dc.yml"
+    delete_after: true
+
+# scale up
+- name: Start Elasticsearch
+  oc_scale:
+    kind: dc
+    name: "{{ es_deploy_name }}"
+    namespace: "{{ openshift_elasticsearch_namespace }}"
+    replicas: 1
+
+## Placeholder for migration when necessary ##
+
+- name: Delete temp directory
+  file:
+    name: "{{ tempdir }}"
+    state: absent
+  changed_when: False

@@ -6,6 +6,7 @@ metadata:
     provider: openshift
     component: elasticsearch
     deployment: "{{deploy_name}}"
+    cluster-name: "{{ es_cluster_name }}"
     logging-infra: "{{logging_component}}"
 spec:
   replicas: {{replicas|default(0)}}
@@ -24,6 +25,7 @@ spec:
         provider: openshift
         component: elasticsearch
         deployment: "{{deploy_name}}"
+        cluster-name: "{{ es_cluster_name }}"
       annotations:
         pod.beta.kubernetes.io/init-containers: '[
           {
@@ -42,7 +44,7 @@ spec:
       serviceAccountName: aggregated-logging-elasticsearch
       securityContext:
         supplementalGroups:
-        - {{openshift_logging_elasticsearch_storage_group}}
+        - {{openshift_elasticsearch_storage_group}}
 {% if es_node_selector is iterable and es_node_selector | length > 0 %}
       nodeSelector:
 {% for key, value in es_node_selector.iteritems() %}
@@ -61,7 +63,7 @@ spec:
               cpu: "{{es_cpu_limit}}"
 {% endif %}
             requests:
-              memory: "4096Mi"
+              memory: "2048Mi"
           ports:
             -
               containerPort: 9200
@@ -85,10 +87,10 @@ spec:
               value: "true"
             -
               name: "SERVICE_DNS"
-              value: "logging-{{es_cluster_name}}-cluster"
+              value: "{{es_cluster_name}}-cluster"
             -
               name: "CLUSTER_NAME"
-              value: "logging-{{es_cluster_name}}"
+              value: "{{es_cluster_name}}"
             -
               name: "INSTANCE_RAM"
               value: "{{openshift_logging_elasticsearch_memory_limit}}"
@@ -103,7 +105,7 @@ spec:
               value: "{{es_recover_expected_nodes}}"
             -
               name: "RECOVER_AFTER_TIME"
-              value: "{{openshift_logging_elasticsearch_recover_after_time}}"
+              value: "{{openshift_elasticsearch_recover_after_time}}"
           volumeMounts:
             - name: elasticsearch
               mountPath: /etc/elasticsearch/secret
@@ -121,12 +123,12 @@ spec:
           configMap:
             name: {{ es_configmap }}
         - name: elasticsearch-storage
-{% if openshift_logging_elasticsearch_storage_type == 'pvc' %}
+{% if openshift_elasticsearch_storage_type == 'pvc' %}
           persistentVolumeClaim:
-            claimName: {{ openshift_logging_elasticsearch_pvc_name }}
-{% elif openshift_logging_elasticsearch_storage_type == 'hostmount' %}
+            claimName: {{ openshift_elasticsearch_pvc_name }}
+{% elif openshift_elasticsearch_storage_type == 'hostmount' %}
           hostPath:
-            path: {{ openshift_logging_elasticsearch_hostmount_path }}
+            path: {{ openshift_elasticsearch_hostmount_path }}
 {% else %}
           emptydir: {}
 {% endif %}
