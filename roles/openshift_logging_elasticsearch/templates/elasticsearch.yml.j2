@@ -19,6 +19,8 @@ node:
 
   data: {% if deploy_type in ['data-master', 'data-client'] %}true{% else %}false{% endif %}
 
+  name: ${NODE_NAME}
+
 network:
   host: 0.0.0.0
 
@@ -27,7 +29,13 @@ cloud:
     service: ${SERVICE_DNS}
     namespace: ${NAMESPACE}
 
-discovery.zen.hosts_provider: kubernetes
+discovery:
+  zen.hosts_provider: kubernetes
+  zen.ping.unicast.hosts: ${SERVICE_DNS}
+#  minimum_master_nodes: ${NUMBER_OF_MASTERS}
+
+plugin.mandatory: discovery-kubernetes
+
 #discovery:
 #  type: kubernetes
 #  zen.ping.multicast.enabled: false

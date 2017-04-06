@@ -75,6 +75,22 @@
     resource_name: rolebinding-reader
     user: "system:serviceaccount:{{ openshift_logging_namespace }}:aggregated-logging-elasticsearch"
 
+# view role
+- copy:
+    src: rolebinding-es.yml
+    dest: "{{ tempdir }}/rolebinding-es.yml"
+
+- name: Crete rolebinding for view role
+  oc_obj:
+    state: present
+    name: logging-elasticsearch-view-role
+    kind: rolebinding
+    namespace: "{{ openshift_logging_namespace }}"
+    files:
+    - "{{ tempdir }}/rolebinding-es.yml"
+    delete_after: true
+
+
 # configmap
 - template:
     src: elasticsearch-logging.yml.j2
@@ -195,6 +211,35 @@
 - set_fact:
     es_deploy_name: "{{ openshift_logging_elasticsearch_deployment_name }}"
   when: openshift_logging_elasticsearch_deployment_name != ""
+
+# Services
+- name: create Elasticsearch 9200 service
+  oc_service:
+    namespace: "{{ openshift_logging_namespace }}"
+    name: logging-es
+    ports:
+    - name: 9200-tcp
+      port: 9200
+      protocol: TCP
+      targetPort: restapi
+    selector:
+      provider: openshift
+      component: elasticsearch
+    session_affinity: ClientIP
+    service_type: ClusterIP
+
+- name: create Elasticsearch 9300 service
+  oc_service:
+    namespace: "{{ openshift_logging_namespace }}"
+    name: logging-es-cluster
+    ports:
+    - name: 9300-tcp
+      port: 9300
+      protocol: TCP
+    selector:
+      provider: openshift
+      component: elasticsearch
+    clusterip: None
 
 # DC
 - name: Set ES dc templates

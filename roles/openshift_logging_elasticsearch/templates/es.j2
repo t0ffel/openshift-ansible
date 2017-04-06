@@ -76,6 +76,11 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             -
+              name: "NODE_NAME"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            -
               name: "KUBERNETES_TRUST_CERT"
               value: "true"
             -
