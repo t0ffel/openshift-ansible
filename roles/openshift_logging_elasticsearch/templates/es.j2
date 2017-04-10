@@ -8,6 +8,7 @@ metadata:
     deployment: "{{deploy_name}}"
     cluster-name: "{{ es_cluster_name }}"
     logging-infra: "{{logging_component}}"
+    es-node-role: "{{ es_role }}"
 spec:
   replicas: {{replicas|default(0)}}
   selector:
@@ -26,22 +27,23 @@ spec:
         component: elasticsearch
         deployment: "{{deploy_name}}"
         cluster-name: "{{ es_cluster_name }}"
-      annotations:
-        pod.beta.kubernetes.io/init-containers: '[
-          {
-          "name": "sysctl",
-            "image": "centos",
-            "command": ["sysctl", "-w", "vm.max_map_count=262144"],
-            "serviceAccountName": "aggregated-logging-elasticsearch",
-            "serviceAccount": "aggregated-logging-elasticsearch",
-            "securityContext": {
-              "privileged": true
-            }
-          }
-        ]'
+        es-node-role: "{{ es_role }}"
+#      annotations:
+#        pod.beta.kubernetes.io/init-containers: '[
+#          {
+#          "name": "sysctl",
+#            "image": "centos",
+#            "command": ["sysctl", "-w", "vm.max_map_count=262144"],
+#            "serviceAccountName": "{{ openshift_elasticsearch_sa_name }}",
+#            "serviceAccount": "{{ openshift_elasticsearch_sa_name }}",
+#            "securityContext": {
+#              "privileged": true
+#            }
+#          }
+#        ]'
     spec:
       terminationGracePeriod: 600
-      serviceAccountName: aggregated-logging-elasticsearch
+      serviceAccountName: {{ openshift_elasticsearch_sa_name }}
       securityContext:
         supplementalGroups:
         - {{openshift_elasticsearch_storage_group}}
@@ -64,6 +66,14 @@ spec:
 {% endif %}
             requests:
               memory: "2048Mi"
+          livenessProbe:
+            tcpSocket:
+              port: 9300
+            initialDelaySeconds: 120
+            periodSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: 9300
           ports:
             -
               containerPort: 9200
@@ -106,19 +116,36 @@ spec:
             -
               name: "RECOVER_AFTER_TIME"
               value: "{{openshift_elasticsearch_recover_after_time}}"
+            -
+              name: NODE_MASTER
+              value: "{{ node_master }}"
+            -
+              name: NODE_DATA
+              value: "{{ node_data }}"
+            -
+              name: NODE_INGEST
+              value: "false"
+            -
+              name: HTTP_ENABLED
+              value: "{{ node_client }}"
+
           volumeMounts:
+{% if openshift_elasticsearch_secure %}
             - name: elasticsearch
               mountPath: /etc/elasticsearch/secret
               readOnly: true
+{% endif %}
             - name: elasticsearch-config
               mountPath: /usr/share/java/elasticsearch/config
               readOnly: true
             - name: elasticsearch-storage
               mountPath: /elasticsearch/persistent
       volumes:
+{% if openshift_elasticsearch_secure %}
         - name: elasticsearch
           secret:
             secretName: logging-elasticsearch
+{% endif %}
         - name: elasticsearch-config
           configMap:
             name: {{ es_configmap }}

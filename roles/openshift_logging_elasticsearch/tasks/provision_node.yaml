@@ -1,9 +1,7 @@
 ---
 - fail:
-    msg: Invalid deployment type, one of ['data-master', 'data-client', 'master', 'client'] allowed
+    msg: Invalid deployment type, one of ['data-master', 'data-client', 'master', 'client', 'data'] allowed
   when: not openshift_elasticsearch_deployment_type in __allowed_es_types
-
-- set_fact: elasticsearch_name="{{ 'logging-elasticsearch' ~ ( (openshift_logging_elasticsearch_ops_deployment | default(false) | bool) | ternary('-ops', '')) }}"
 
 - include: determine_version.yaml
 
@@ -80,14 +78,17 @@
     src: es.j2
     dest: "{{ tempdir }}/templates/logging-es-dc.yml"
   vars:
-    es_configmap: "{{ openshift_elasticsearch_clustername }}-{{ openshift_elasticsearch_deployment_type }}"
+    es_configmap: "{{ openshift_elasticsearch_clustername }}-configuration"
     es_cluster_name: "{{ openshift_elasticsearch_clustername }}"
+    # TODO: add ability to add arbitrary label to ES deployments,
+    # remove mandatory logging_component
     logging_component: "{{ openshift_elasticsearch_clustername }}"
     deploy_name: "{{ es_deploy_name }}"
     image: "{{ openshift_elasticsearch_image_prefix }}elasticsearch:{{ openshift_elasticsearch_image_version }}"
     es_cpu_limit: "{{ openshift_elasticsearch_cpu_limit }}"
     es_memory_limit: "{{ openshift_elasticsearch_memory_limit }}"
     es_node_selector: "{{ openshift_elasticsearch_nodeselector | default({}) }}"
+  changed_when: false
 
 - name: Set ES dc
   oc_obj:
@@ -105,7 +106,7 @@
     kind: dc
     name: "{{ es_deploy_name }}"
     namespace: "{{ openshift_elasticsearch_namespace }}"
-    replicas: 1
+    replicas: "{{ replicas | default(1) }}"
 
 ## Placeholder for migration when necessary ##
 

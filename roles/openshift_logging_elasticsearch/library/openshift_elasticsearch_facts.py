@@ -34,6 +34,7 @@ DEFAULT_OC_OPTIONS = ["-o", "json"]
 COMPONENT_KEY = "component"
 LOGGING_INFRA_KEY = "logging-infra"
 CLUSTER_NAME_LABEL = "cluster-name"
+ES_ROLE_LABEL = "es-role"
 # selectors for filtering resources
 DS_FLUENTD_SELECTOR = LOGGING_INFRA_KEY + "=" + "fluentd"
 LOGGING_SELECTOR = LOGGING_INFRA_KEY + "=" + "support"
@@ -159,11 +160,18 @@ class OpenshiftLoggingFacts(OCBaseCommand):
             comp = self.comp(name)
             self.add_facts_for(comp, "pvcs", name, dict())
 
-    def facts_for_deploymentconfigs(self, namespace):
+    def facts_for_deploymentconfigs(self, namespace, es_role):
         ''' Gathers facts for DeploymentConfigs in logging namespace '''
         self.default_keys_for("deploymentconfigs")
-        dclist = self.oc_command("get", "deploymentconfigs", namespace=namespace, add_options=["-l", CLUSTER_NAME_LABEL + "=" + self.cluster_name])
+        dclist = self.oc_command("get", "deploymentconfigs",
+                                 namespace=namespace,
+                                 add_options=["-l",
+                                              CLUSTER_NAME_LABEL + "=" +\
+                                              self.cluster_name, "-l",
+                                              ES_ROLE_LABEL + "=" +\
+                                              es_role])
         if len(dclist["items"]) == 0:
+            self.add_facts_for("node_topology", es_role)
             return
         dcs = dclist["items"]
         for dc_item in dcs:
@@ -186,7 +194,7 @@ class OpenshiftLoggingFacts(OCBaseCommand):
                     image=container["image"],
                     resources=container["resources"],
                 )
-            self.add_facts_for("elasticsearch", "deploymentconfigs", name, facts)
+            self.add_facts_for("node_topology", es_role, name, facts)
 
     def facts_for_services(self, namespace):
         ''' Gathers facts for services in logging namespace '''
@@ -203,7 +211,8 @@ class OpenshiftLoggingFacts(OCBaseCommand):
     def facts_for_configmaps(self, namespace):
         ''' Gathers facts for configmaps in logging namespace '''
         self.default_keys_for("configmaps")
-        a_list = self.oc_command("get", "configmaps", namespace=namespace, add_options=["-l", LOGGING_SELECTOR])
+        cm_name = self.cluster_name + "-configuration"
+        a_list = self.oc_command("get", "configmaps", namespace=namespace)
         if len(a_list["items"]) == 0:
             return
         for item in a_list["items"]:
@@ -289,7 +298,7 @@ class OpenshiftLoggingFacts(OCBaseCommand):
             return "curator"
         elif name.startswith("logging-kibana") or name.startswith("kibana"):
             return "kibana"
-        elif name.startswith(self.cluster_name) or name.startswith("logging-elasticsearch"):
+        elif name.startswith(self.cluster_name):
             return "elasticsearch"
         elif name.startswith("logging-fluentd") or name.endswith("aggregated-logging-fluentd"):
             return "fluentd"
@@ -298,9 +307,11 @@ class OpenshiftLoggingFacts(OCBaseCommand):
 
     def build_facts(self):
         ''' Builds the logging facts and returns them '''
-        self.facts_for_routes(self.namespace)
+        self.facts_for_deploymentconfigs(self.namespace, "master")
+        self.facts_for_deploymentconfigs(self.namespace, "client")
+        self.facts_for_deploymentconfigs(self.namespace, "data")
+
         self.facts_for_daemonsets(self.namespace)
-        self.facts_for_deploymentconfigs(self.namespace)
         self.facts_for_services(self.namespace)
         self.facts_for_configmaps(self.namespace)
         self.facts_for_sccs()

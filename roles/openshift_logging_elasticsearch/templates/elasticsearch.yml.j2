@@ -5,24 +5,22 @@ script:
   inline: on
   stored: on
 
-  #index:
-  #  number_of_shards: 1
-  #  number_of_replicas: 0
-  #  auto_expand_replicas: 0-2
-  #  unassigned.node_left.delayed_timeout: 2m
-  #  translog:
-  #    flush_threshold_size: 256mb
-  #    flush_threshold_period: 5m
-  #
 node:
-  master: {% if deploy_type in ['data-master', 'master'] %}true{% else %}false{% endif %}
-
-  data: {% if deploy_type in ['data-master', 'data-client'] %}true{% else %}false{% endif %}
-
+  master: ${NODE_MASTER}
+# {% if deploy_type in ['data-master', 'master'] %}true{% else %}false{% endif %}
+#
+  data: ${NODE_DATA}
+#{% if deploy_type in ['data-master', 'data-client'] %}true{% else %}false{% endif %}
+#
   name: ${NODE_NAME}
+  ingest: ${NODE_INGEST}
 
 network:
   host: 0.0.0.0
+
+http:
+  enabled: ${HTTP_ENABLED}
+  compression: true
 
 cloud:
   kubernetes:
@@ -42,11 +40,14 @@ plugin.mandatory: discovery-kubernetes
 
 gateway:
   expected_master_nodes: ${NODE_QUORUM}
+  # ^^^ should be full number of master nodes.
   recover_after_nodes: ${RECOVER_AFTER_NODES}
+  ## ^^ node quorum
   expected_nodes: ${RECOVER_EXPECTED_NODES}
   recover_after_time: ${RECOVER_AFTER_TIME}
+# add recover_after_master - masters quorum.
 
-  #io.fabric8.elasticsearch.authentication.users: ["system.logging.kibana", "system.logging.fluentd", "system.logging.curator", "system.admin"]
+#io.fabric8.elasticsearch.authentication.users: ["system.logging.kibana", "system.logging.fluentd", "system.logging.curator", "system.admin"]
 
 #openshift.config:
 #  use_common_data_model: true

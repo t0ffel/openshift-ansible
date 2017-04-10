@@ -45,7 +45,7 @@
 - name: Set ES configmap
   oc_configmap:
     state: present
-    name: "{{ openshift_elasticsearch_clustername }}-{{ openshift_elasticsearch_deployment_type }}"
+    name: "{{ openshift_elasticsearch_clustername }}-configuration"
     namespace: "{{ openshift_elasticsearch_namespace }}"
     from_file:
       elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"

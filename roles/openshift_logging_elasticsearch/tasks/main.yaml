@@ -7,7 +7,7 @@
 
 - name: Validate Elasticsearch cluster size
   fail: msg="The openshift_elasticsearch_cluster_size may only be scaled down manually. Please see official documentation on how to do this."
-  when: openshift_elasticsearch_facts.elasticsearch.deploymentconfigs | length > openshift_elasticsearch_cluster_size|int
+  when: openshift_elasticsearch_facts.node_topology.data | length > openshift_elasticsearch_cluster_size|int
 
 - name: Set Elasticsearch project
   oc_project:
@@ -31,8 +31,8 @@
       protocol: TCP
       targetPort: restapi
     selector:
-      provider: openshift
-      component: elasticsearch
+      cluster-name: "{{ openshift_elasticsearch_clustername }}"
+      es-node-role: "client"
     session_affinity: ClientIP
     service_type: ClusterIP
 
@@ -45,33 +45,68 @@
       port: 9300
       protocol: TCP
     selector:
-      provider: openshift
-      component: elasticsearch
+      cluster-name: "{{ openshift_elasticsearch_clustername }}"
+      es-node-role: "master"
     clusterip: None
+
+# Deploy masters
+- include: "{{ role_path }}/tasks/provision_node.yaml"
+  vars:
+    replicas: "{{ es_node_topology.masters.replicas }}"
+    es_cluster_name: "{{ openshift_elasticsearch_clustername }}"
+    es_role: master
+    node_master: "true"
+    node_data: "false"
+    node_client: "false"
+    openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-masters"
+    generated_certs_dir: "{{openshift.common.config_base}}/logging"
+    #    openshift_elasticsearch_pvc_name: "{{ openshift_es_pvc_prefix }}-{{ ( item|int + ( openshift_elasticsearch_facts.elasticsearch.deploymentconfigs | count ) )|string }}"
+
+# Deploy clients
+- include: "{{ role_path }}/tasks/provision_node.yaml"
+  vars:
+    replicas: "{{ es_node_topology.clients.replicas }}"
+    es_cluster_name: "{{ openshift_elasticsearch_clustername }}"
+    es_role: client
+    node_master: "false"
+    node_data: "false"
+    node_client: "true"
+    openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-clients"
+
+# Deploy data nodes
+- include: "{{ role_path }}/tasks/provision_node.yaml"
+  vars:
+    es_cluster_name: "{{ openshift_elasticsearch_clustername }}"
+    es_role: data
+    node_master: "false"
+    node_data: "true"
+    node_client: "false"
+    openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-data-{{ item.0 }}"
+  with_indexed_items: "{{ es_node_topology.data }}"
 
 # TODO: add more vars
 # We don't allow scaling down of ES nodes currently
-- include: "{{ role_path }}/tasks/install.yaml"
-  vars:
-    #generated_certs_dir: "{{openshift.common.config_base}}/logging"
-    openshift_elasticsearch_deployment_name: "{{ item.0 }}"
-    openshift_elasticsearch_pvc_name: "{{ item.1 }}"
-
-    #openshift_logging_elasticsearch_storage_type: "{{ }}"
-    openshift_elasticsearch_pvc_size: "{{ openshift_logging_es_pvc_size }}"
-    openshift_elasticsearch_pvc_dynamic: "{{ openshift_logging_es_pvc_dynamic }}"
-    openshift_elasticsearch_pvc_pv_selector: "{{ openshift_logging_es_pv_selector }}"
-
-  with_together:
-  - "{{ openshift_elasticsearch_facts.elasticsearch.deploymentconfigs }}"
-  - "{{ openshift_elasticsearch_facts.elasticsearch.pvcs }}"
-
-# Create any new DC that may be required
-- include: "{{ role_path }}/tasks/install.yaml"
-  vars:
-    generated_certs_dir: "{{openshift.common.config_base}}/logging"
-    openshift_elasticsearch_pvc_name: "{{ openshift_es_pvc_prefix }}-{{ ( item|int + ( openshift_elasticsearch_facts.elasticsearch.deploymentconfigs | count ) )|string }}"
-
-  with_sequence: count={{ ( ( openshift_elasticsearch_cluster_size | int ) - ( openshift_elasticsearch_facts.elasticsearch.deploymentconfigs | count ) ) }}
-
+#- include: "{{ role_path }}/tasks/provision_node.yaml"
+#  vars:
+#    #generated_certs_dir: "{{openshift.common.config_base}}/logging"
+#    openshift_elasticsearch_deployment_name: "{{ item.0 }}"
+#    openshift_elasticsearch_pvc_name: "{{ item.1 }}"
+#
+#    #openshift_logging_elasticsearch_storage_type: "{{ }}"
+#    openshift_elasticsearch_pvc_size: "{{ openshift_logging_es_pvc_size }}"
+#    openshift_elasticsearch_pvc_dynamic: "{{ openshift_logging_es_pvc_dynamic }}"
+#    openshift_elasticsearch_pvc_pv_selector: "{{ openshift_logging_es_pv_selector }}"
+#
+#  with_together:
+#  - "{{ openshift_elasticsearch_facts.elasticsearch.deploymentconfigs }}"
+#  - "{{ openshift_elasticsearch_facts.elasticsearch.pvcs }}"
+#
+## Create any new DC that may be required
+#- include: "{{ role_path }}/tasks/provision_node.yaml"
+#  vars:
+#    generated_certs_dir: "{{openshift.common.config_base}}/logging"
+#    openshift_elasticsearch_pvc_name: "{{ openshift_es_pvc_prefix }}-{{ ( item|int + ( openshift_elasticsearch_facts.elasticsearch.deploymentconfigs | count ) )|string }}"
+#
+#  with_sequence: count={{ ( ( openshift_elasticsearch_cluster_size | int ) - ( openshift_elasticsearch_facts.elasticsearch.deploymentconfigs | count ) ) }}
+#
 - debug: var=openshift_elasticsearch_facts

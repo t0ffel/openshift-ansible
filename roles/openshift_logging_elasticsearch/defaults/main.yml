@@ -4,6 +4,7 @@ openshift_elasticsearch_image_prefix: "{{ openshift_hosted_deployer_prefix | def
 openshift_elasticsearch_image_version: "{{ openshift_hosted_deployer_version | default('latest') }}"
 openshift_elasticsearch_image_pull_secret: "{{ openshift_hosted_image_pull_secret | default('') }}"
 openshift_elasticsearch_namespace: logging
+openshift_elasticsearch_sa_name: elasticsearch-sa
 
 openshift_master_url: "https://kubernetes.default.svc.{{ openshift.common.dns_domain }}"
 
@@ -12,13 +13,48 @@ openshift_es_port: 9200
 openshift_es_ca: /etc/fluent/keys/ca
 openshift_es_client_cert: /etc/fluent/keys/cert
 openshift_es_client_key: /etc/fluent/keys/key
-openshift_elasticsearch_secure: "false"
+openshift_elasticsearch_secure: false
 openshift_elasticsearch_clustername: "elastic1"
 openshift_elasticsearch_cluster_size: 1
 openshift_elasticsearch_nodeselector: ""
 openshift_elasticsearch_cpu_limit: 100m
 openshift_elasticsearch_memory_limit: 2048Mi
 openshift_elasticsearch_recover_after_time: 5m
+
+es_node_topology:
+  masters:
+    replicas: 3
+    limits:
+      memory: 512Mi
+      cpu: 100m
+      #    nodeSelector:
+      #label_name: label_value
+  clients:
+    replicas: 2
+    limits:
+      memory: 512Mi
+      cpu: 100m
+      #    nodeSelector:
+      #label_name: label_value
+  data:
+  -
+    #nodeSelector:
+    #  label_name: label_value
+    storage_type: emptydir
+    hostmount_path: /mnt/data
+    limits:
+      memory: 512Mi
+      cpu: 100m
+
+  -
+    #nodeSelector:
+    #  label_name: label_value
+    storage_type: emptydir
+    hostmount_path: /mnt/data
+    limits:
+      memory: 512Mi
+      cpu: 100m
+
 
 # ES deployment type
 openshift_elasticsearch_deployment_type: "data-master"
@@ -58,8 +94,5 @@ openshift_logging_elasticsearch_ops_allow_cluster_reader: false
 #es_config_contents:
 
 
-#openshift_master_public_url: "{{ openshift_hosted_master_public_url | default('https://' + openshift.common.public_hostname + ':' ~ (openshift_master_api_port | default('8443', true))) }}"
-#openshift_es_host: logging-es
-#
 openshift_logging_es_ops_cluster_size: "{{ openshift_hosted_logging_elasticsearch_ops_cluster_size | default(1) }}"
-
+openshift_elasticsearch_integration: false
