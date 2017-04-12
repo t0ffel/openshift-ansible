@@ -59,17 +59,22 @@ spec:
           image: {{image}}
           imagePullPolicy: Always
           resources:
+{% if limits is defined %}
             limits:
-              memory: "{{es_memory_limit}}"
-{% if es_cpu_limit is defined and es_cpu_limit is not none %}
-              cpu: "{{es_cpu_limit}}"
+{% for key, value in limits.iteritems() %}
+              {{key}}: "{{value}}"
+{% endfor %}
 {% endif %}
+{% if requests is defined %}
             requests:
-              memory: "2048Mi"
+{% for key, value in requests.iteritems() %}
+              {{key}}: "{{value}}"
+{% endfor %}
+{% endif %}
           livenessProbe:
             tcpSocket:
               port: 9300
-            initialDelaySeconds: 120
+            initialDelaySeconds: 480
             periodSeconds: 5
           readinessProbe:
             tcpSocket:
@@ -128,7 +133,6 @@ spec:
             -
               name: HTTP_ENABLED
               value: "{{ node_client }}"
-
           volumeMounts:
 {% if openshift_elasticsearch_secure %}
             - name: elasticsearch
@@ -138,8 +142,15 @@ spec:
             - name: elasticsearch-config
               mountPath: /usr/share/java/elasticsearch/config
               readOnly: true
+{% if storage_type == 'hostmount' %}
+{% for item in hostmount_path %}
+            - name: elasticsearch-storage-{{ loop.index0 }}
+              mountPath: /elasticsearch/persistent/{{ loop.index0 }}
+{% endfor %}
+{% else %}
             - name: elasticsearch-storage
               mountPath: /elasticsearch/persistent
+{% endif %}
       volumes:
 {% if openshift_elasticsearch_secure %}
         - name: elasticsearch
@@ -149,13 +160,17 @@ spec:
         - name: elasticsearch-config
           configMap:
             name: {{ es_configmap }}
+{% if storage_type == 'pvc' %}
         - name: elasticsearch-storage
-{% if openshift_elasticsearch_storage_type == 'pvc' %}
           persistentVolumeClaim:
             claimName: {{ openshift_elasticsearch_pvc_name }}
-{% elif openshift_elasticsearch_storage_type == 'hostmount' %}
+{% elif storage_type == 'hostmount' %}
+{% for item in hostmount_path %}
+        - name: elasticsearch-storage-{{ loop.index0 }}
           hostPath:
-            path: {{ openshift_elasticsearch_hostmount_path }}
+            path: {{ item }}
+{% endfor %}
 {% else %}
+        - name: elasticsearch-storage
           emptydir: {}
 {% endif %}

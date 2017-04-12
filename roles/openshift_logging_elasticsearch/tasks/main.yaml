@@ -17,9 +17,6 @@
 # Set up service accounts and roles
 - include: "{{ role_path }}/tasks/service_accounts.yaml"
 
-# Setup all configmaps and secrets
-- include: "{{ role_path }}/tasks/es_node_configuration.yaml"
-
 # Services
 - name: create Elasticsearch 9200 service
   oc_service:
@@ -49,17 +46,27 @@
       es-node-role: "master"
     clusterip: None
 
+# Set variables common for all DCs
+- set_fact:
+    logging_component: "{{ openshift_elasticsearch_clustername }}"
+
+- set_fact:
+    image: "{{ openshift_elasticsearch_image_prefix }}elasticsearch:{{ openshift_elasticsearch_image_version }}"
+
 # Deploy masters
 - include: "{{ role_path }}/tasks/provision_node.yaml"
   vars:
     replicas: "{{ es_node_topology.masters.replicas }}"
-    es_cluster_name: "{{ openshift_elasticsearch_clustername }}"
     es_role: master
     node_master: "true"
     node_data: "false"
     node_client: "false"
     openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-masters"
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
+    limits: "{{ es_node_topology.masters.limits }}"
+    es_node_selector: "{{ es_node_topology.masters.nodeSelector | default({}) }}"
+    node_storage_type: emptydir
+
     #    openshift_elasticsearch_pvc_name: "{{ openshift_es_pvc_prefix }}-{{ ( item|int + ( openshift_elasticsearch_facts.elasticsearch.deploymentconfigs | count ) )|string }}"
 
 # Deploy clients
@@ -72,6 +79,9 @@
     node_data: "false"
     node_client: "true"
     openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-clients"
+    limits: "{{ es_node_topology.clients.limits }}"
+    es_node_selector: "{{ es_node_topology.clients.nodeSelector | default({}) }}"
+    node_storage_type: emptydir
 
 # Deploy data nodes
 - include: "{{ role_path }}/tasks/provision_node.yaml"
@@ -82,6 +92,10 @@
     node_data: "true"
     node_client: "false"
     openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-data-{{ item.0 }}"
+    limits: "{{ item.1.limits }}"
+    es_node_selector: "{{ item.1.nodeSelector | default({}) }}"
+    node_storage_type: "{{ item.1.node_storage_type | default(emptydir) }}"
+    hostmount_path: "{{ item.1.hostmount_path |default ({})}}"
   with_indexed_items: "{{ es_node_topology.data }}"
 
 # TODO: add more vars

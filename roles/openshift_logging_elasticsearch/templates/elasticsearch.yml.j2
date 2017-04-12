@@ -61,7 +61,14 @@ gateway:
   #openshift.operations.allow_cluster_reader: {{allow_cluster_reader | default ('false')}}
 
 path:
-  data: /elasticsearch/persistent/${CLUSTER_NAME}/data
+  data:
+{% if storage_type == 'hostmount' %}
+{% for item in hostmount_path %}
+  - /elasticsearch/persistent/{{ loop.index0 }}
+{% endfor %}
+{% else %}
+  - /elasticsearch/persistent/
+{% endif %}
   logs: /elasticsearch/${CLUSTER_NAME}/logs
 #  work: /elasticsearch/${CLUSTER_NAME}/work
   scripts: /elasticsearch/${CLUSTER_NAME}/scripts

@@ -1,13 +1,4 @@
 ---
-# allow passing in a tempdir
-- name: Create temp directory for doing work in
-  command: mktemp -d /tmp/openshift-logging-ansible-XXXXXX
-  register: mktemp
-  changed_when: False
-
-- set_fact:
-    tempdir: "{{ mktemp.stdout }}"
-
 # configmap
 - template:
     src: elasticsearch-logging.yml.j2
@@ -45,7 +36,7 @@
 - name: Set ES configmap
   oc_configmap:
     state: present
-    name: "{{ openshift_elasticsearch_clustername }}-configuration"
+    name: "{{ node_configmap }}"
     namespace: "{{ openshift_elasticsearch_namespace }}"
     from_file:
       elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
@@ -78,9 +69,3 @@
     - name: admin.jks
       path: "{{ generated_certs_dir }}/system.admin.jks"
   when: openshift_elasticsearch_secure
-
-- name: Delete temp directory
-  file:
-    name: "{{ tempdir }}"
-    state: absent
-  changed_when: False

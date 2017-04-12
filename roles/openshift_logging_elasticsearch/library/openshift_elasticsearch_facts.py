@@ -34,7 +34,7 @@ DEFAULT_OC_OPTIONS = ["-o", "json"]
 COMPONENT_KEY = "component"
 LOGGING_INFRA_KEY = "logging-infra"
 CLUSTER_NAME_LABEL = "cluster-name"
-ES_ROLE_LABEL = "es-role"
+ES_ROLE_LABEL = "es-node-role"
 # selectors for filtering resources
 DS_FLUENTD_SELECTOR = LOGGING_INFRA_KEY + "=" + "fluentd"
 LOGGING_SELECTOR = LOGGING_INFRA_KEY + "=" + "support"

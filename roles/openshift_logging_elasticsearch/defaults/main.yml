@@ -23,37 +23,42 @@ openshift_elasticsearch_recover_after_time: 5m
 
 es_node_topology:
   masters:
-    replicas: 3
+    replicas: 1
     limits:
-      memory: 512Mi
-      cpu: 100m
+      memory: 1024Mi
+      cpu: 200m
       #    nodeSelector:
       #label_name: label_value
-  clients:
-    replicas: 2
-    limits:
+    requests:
       memory: 512Mi
-      cpu: 100m
+  clients:
+    replicas: 1
+    limits:
+      memory: 1024Mi
+      cpu: 200m
       #    nodeSelector:
       #label_name: label_value
   data:
   -
-    #nodeSelector:
-    #  label_name: label_value
-    storage_type: emptydir
-    hostmount_path: /mnt/data
+    nodeSelector:
+      kubernetes.io/hostname: asherkho-ocp-rhel1.os1.phx2.redhat.com
+    node_storage_type: hostmount
+    hostmount_path:
+    - /mnt/data1
+    - /mnt/data2
     limits:
-      memory: 512Mi
-      cpu: 100m
-
+      memory: 2048Mi
+      cpu: 200m
   -
     #nodeSelector:
     #  label_name: label_value
-    storage_type: emptydir
-    hostmount_path: /mnt/data
+    node_storage_type: emptydir
+    hostmount_path:
+    - /mnt/data
+    # ^^^ this needs to be a list for elasticsearch consumption.
     limits:
-      memory: 512Mi
-      cpu: 100m
+      memory: 2048Mi
+      cpu: 200m
 
 
 # ES deployment type
