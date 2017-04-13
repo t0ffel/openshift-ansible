@@ -23,7 +23,7 @@ openshift_elasticsearch_recover_after_time: 5m
 
 es_node_topology:
   masters:
-    replicas: 1
+    replicas: 2
     limits:
       memory: 1024Mi
       cpu: 200m

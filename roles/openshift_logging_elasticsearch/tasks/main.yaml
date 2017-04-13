@@ -61,7 +61,7 @@
     node_master: "true"
     node_data: "false"
     node_client: "false"
-    openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-masters"
+    openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-master"
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
     limits: "{{ es_node_topology.masters.limits }}"
     es_node_selector: "{{ es_node_topology.masters.nodeSelector | default({}) }}"
@@ -78,7 +78,7 @@
     node_master: "false"
     node_data: "false"
     node_client: "true"
-    openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-clients"
+    openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-client"
     limits: "{{ es_node_topology.clients.limits }}"
     es_node_selector: "{{ es_node_topology.clients.nodeSelector | default({}) }}"
     node_storage_type: emptydir

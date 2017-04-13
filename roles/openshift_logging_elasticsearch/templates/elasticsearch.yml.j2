@@ -7,11 +7,7 @@ script:
 
 node:
   master: ${NODE_MASTER}
-# {% if deploy_type in ['data-master', 'master'] %}true{% else %}false{% endif %}
-#
   data: ${NODE_DATA}
-#{% if deploy_type in ['data-master', 'data-client'] %}true{% else %}false{% endif %}
-#
   name: ${NODE_NAME}
   ingest: ${NODE_INGEST}
 
