@@ -36,3 +36,47 @@ notation).
 ### Data-Client nodes
 
 TODO
+
+# Deployment
+
+## Prerequisites
+
+### Node assignment
+
+It is highly recommended that the nodes where Elasticsearch is run are labelled
+appropriately. Including the nodes for master and client pods, then the
+appropriate `nodeSelector` is used in the topology.
+
+### Virtual memory
+
+Host-level setting `vm.max_map_count=262144` is required on all the nodes where
+Elasticsearch pods will be run.
+https://www.elastic.co/guide/en/elasticsearch/reference/5.3/vm-max-map-count.html
+
+### Host-mount settings for data nodes
+
+In case `hostmount` option is used, create mount points on the data nodes
+prior to starting the deployment.
+Mount point permissions: make sure that everyone in group `root` has all the
+permissions.
+
+Label the folder appropriately:
+
+`# chcon -Rt svirt_sandbox_file_t <dir_name>`
+
+for details please consult with : http://www.projectatomic.io/blog/2015/06/using-volumes-with-docker-can-cause-problems-with-selinux/
+
+## Execute deployment
+
+Define the node topology (`es_node_topology` var), define namespace.
+
+Define storage that you're going to use for Elasticsearch:
+* PersistentVolumeClaim - type `pvc`.
+* Ephemeral - type `emptydir`
+* Host-mounted directories - type `hostmount`
+
+Run the role.
+
+## Upgrade
+
+TODO: needs to be implemented.

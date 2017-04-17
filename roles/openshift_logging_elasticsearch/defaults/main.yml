@@ -16,16 +16,14 @@ openshift_es_client_key: /etc/fluent/keys/key
 openshift_elasticsearch_secure: false
 openshift_elasticsearch_clustername: "elastic1"
 openshift_elasticsearch_cluster_size: 1
-openshift_elasticsearch_nodeselector: ""
-openshift_elasticsearch_cpu_limit: 100m
-openshift_elasticsearch_memory_limit: 2048Mi
+## TODO: replace with computable cluster size
 openshift_elasticsearch_recover_after_time: 5m
 
 es_node_topology:
   masters:
     replicas: 2
     limits:
-      memory: 1024Mi
+      #      memory: 1024Mi
       cpu: 200m
       #    nodeSelector:
       #label_name: label_value
@@ -60,24 +58,7 @@ es_node_topology:
       memory: 2048Mi
       cpu: 200m
 
-
-# ES deployment type
-openshift_elasticsearch_deployment_type: "data-master"
-
-# ES deployment name
-openshift_elasticsearch_deployment_name: ""
-
 ### Elasticsearch storage layout
-
-# One of ['emptydir', 'pvc', 'hostmount']
-openshift_elasticsearch_storage_type: "emptydir"
-
-# hostmount options
-openshift_elasticsearch_hostmount_path: ""
-
-# pvc options
-# the name of the PVC we will bind to -- create it if it does not exist
-openshift_elasticsearch_pvc_name: ""
 
 # required if the PVC does not already exist
 openshift_elasticsearch_pvc_size: ""

@@ -1,7 +1,7 @@
 ---
 - fail:
-    msg: Invalid deployment type, one of ['data-master', 'data-client', 'master', 'client', 'data'] allowed
-  when: not openshift_elasticsearch_deployment_type in __allowed_es_types
+    msg: "Invalid node role '{{ es_role }}' provide, one of {{ __allowed_es_roles }} is allowed"
+  when: not es_role in __allowed_es_roles
 
 - include: determine_version.yaml
 

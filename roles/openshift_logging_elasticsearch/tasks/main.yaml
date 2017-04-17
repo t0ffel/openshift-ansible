@@ -7,7 +7,7 @@
 
 - name: Validate Elasticsearch cluster size
   fail: msg="The openshift_elasticsearch_cluster_size may only be scaled down manually. Please see official documentation on how to do this."
-  when: openshift_elasticsearch_facts.node_topology.data | length > openshift_elasticsearch_cluster_size|int
+  when: openshift_elasticsearch_facts.node_topology.data | length > es_node_topology.data | length
 
 - name: Set Elasticsearch project
   oc_project:

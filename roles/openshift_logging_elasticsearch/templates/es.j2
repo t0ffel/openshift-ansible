@@ -108,7 +108,9 @@ spec:
               value: "{{es_cluster_name}}"
             -
               name: "INSTANCE_RAM"
-              value: "{{openshift_logging_elasticsearch_memory_limit}}"
+{% if limits is defined and limits.memory is defined %}
+              value: "{{ limits.memory }}"
+{% endif %}
             -
               name: "NODE_QUORUM"
               value: "{{es_node_quorum | int}}"

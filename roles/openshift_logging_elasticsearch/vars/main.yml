@@ -1,7 +1,7 @@
 ---
 __latest_es_version: "3_5"
 __allowed_es_versions: ["3_5"]
-__allowed_es_types: ["data-master", "data-client", "master", "client"]
+__allowed_es_roles: ["data", "master", "client"]
 
 # TODO: integrate these
 openshift_master_config_dir: "{{ openshift.common.config_base }}/master"

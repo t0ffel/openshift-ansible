@@ -17,7 +17,6 @@
     dest: "{{ tempdir }}/elasticsearch.yml"
   vars:
     allow_cluster_reader: "{{ openshift_logging_elasticsearch_ops_allow_cluster_reader | lower | default('false') }}"
-    deploy_type: "{{ openshift_elasticsearch_deployment_type }}"
   when: es_config_contents is undefined
   changed_when: no
 

@@ -4,8 +4,5 @@
   - role: openshift_logging_elasticsearch
     openshift_hosted_logging_cleanup: no
     openshift_elasticsearch_image_prefix: "t0ffel/"
-    openshift_logging_elasticsearch_memory_limit: "4096Mi"
-    openshift_elasticsearch_cpu_limit: "500m"
-    openshift_elasticsearch_cluster_size: 2
     openshift_elasticsearch_namespace: elasticsearch
 
