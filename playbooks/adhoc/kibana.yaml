@@ -10,3 +10,4 @@
     openshift_logging_image_version: latest
     secure_kibana: false
     oauth_proxy: false
+    openshift_logging_kibana_hostname: "kibana.example.com"
