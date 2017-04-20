@@ -25,7 +25,8 @@ es_node_topology:
     limits:
       #      memory: 1024Mi
       cpu: 200m
-      #    nodeSelector:
+    nodeSelector:
+      elasticsearch: "true"
       #label_name: label_value
     requests:
       memory: 512Mi
