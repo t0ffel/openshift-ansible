@@ -1,0 +1,11 @@
+---
+- hosts: masters[0]
+  roles:
+  - role: openshift_elasticsearch_cerebro
+    openshift_hosted_logging_cleanup: no
+    openshift_cerebro_image_prefix: "t0ffel/"
+    openshift_cerebro_namespace: elasticsearch
+    openshift_cerebro_es_host: elastic1
+    openshift_cerebro_es_port: 9200
+    openshift_cerebro_image_version: latest
+    openshift_cerebro_hostname: "cerebro.example.com"

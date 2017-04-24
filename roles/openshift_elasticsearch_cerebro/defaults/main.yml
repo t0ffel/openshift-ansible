@@ -1,0 +1,24 @@
+---
+### Common settings
+openshift_cerebro_image_prefix: "{{ openshift_hosted_deployer_prefix | default('docker.io/openshift/origin-') }}"
+openshift_cerebro_image_version: "{{ openshift_hosted_deployer_version | default('latest') }}"
+openshift_cerebro_namespace: elasticsearch
+openshift_cerebro_escluster_name: elastic1
+
+openshift_cerebro_nodeselector: ""
+openshift_cerebro_cpu_limit: null
+openshift_cerebro_memory_limit: null
+
+openshift_cerebro_hostname: "cerebro.router.default.svc.cluster.local"
+
+openshift_cerebro_es_host: "logging-es"
+openshift_cerebro_es_port: 9200
+
+openshift_cerebro_replicas: 1
+openshift_cerebro_edge_term_policy: Redirect
+
+# Proxy settings
+openshift_cerebro_proxy_debug: false
+openshift_cerebro_proxy_cpu_limit: null
+openshift_cerebro_proxy_memory_limit: null
+

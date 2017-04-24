@@ -1,0 +1,121 @@
+---
+# fail is we don't have an endpoint for ES to connect to?
+- debug: var=tempdir
+
+# allow passing in a tempdir
+- name: Create temp directory for doing work in
+  command: mktemp -d /tmp/openshift-logging-ansible-XXXXXX
+  register: mktemp
+  changed_when: False
+
+- set_fact:
+    tempdir: "{{ mktemp.stdout }}"
+
+# This may not be necessary in this role
+- name: Create templates subdirectory
+  file:
+    state: directory
+    path: "{{ tempdir }}/templates"
+    mode: 0755
+  changed_when: False
+
+# we want to make sure we have all the necessary components here
+- set_fact: cerebro_name="{{ openshift_cerebro_escluster_name }}-cerebro"
+
+# Services
+- name: create Cerebro service
+  oc_service:
+    namespace: "{{ openshift_cerebro_namespace }}"
+    name: "{{ cerebro_name }}"
+    ports:
+    - name: 9000-tcp
+      port: 9000
+      protocol: TCP
+    selector:
+      cluster-name: "{{ openshift_cerebro_escluster_name }}"
+      es-component: cerebro
+    session_affinity: ClientIP
+    service_type: ClusterIP
+
+- name: Generating Cerebro route template
+  template:
+    src: route_reencrypt.j2
+    dest: "{{ tempdir }}/templates/cerebro-route.yaml"
+  vars:
+    obj_name: "{{ cerebro_name }}"
+    route_host: "{{ openshift_cerebro_hostname }}"
+    service_name: "{{ cerebro_name }}"
+    labels:
+      es-component: cerebro
+      cluster-name: "{{ openshift_cerebro_escluster_name }}"
+      logging-infra: support
+      provider: openshift
+  changed_when: no
+
+- name: Setting Cerebro route
+  oc_obj:
+    state: present
+    name: "{{ cerebro_name }}"
+    namespace: "{{ openshift_cerebro_namespace }}"
+    kind: route
+    files:
+    - "{{ tempdir }}/templates/cerebro-route.yaml"
+
+- template:
+    src: cerebro.conf.j2
+    dest: "{{ tempdir }}/cerebro.conf"
+  vars:
+    cluster_name: "{{ openshift_cerebro_escluster_name }}"
+  changed_when: no
+
+- name: Set Cerebro configmap
+  oc_configmap:
+    state: present
+    name: cerebro-conf
+    namespace: "{{ openshift_cerebro_namespace }}"
+    from_file:
+      cerebro.conf: "{{ tempdir }}/cerebro.conf"
+
+# create Cerebro DC
+- name: Generate Cerebro DC template
+  template:
+    src: cerebro.j2
+    dest: "{{ tempdir }}/templates/cerebro-dc.yaml"
+  vars:
+    component: cerebro
+    logging_component: cerebro
+    deploy_name: "{{ cerebro_name }}"
+    image: "{{ openshift_cerebro_image_prefix }}cerebro:{{ openshift_cerebro_image_version }}"
+    es_host: "{{ openshift_cerebro_es_host }}"
+    es_port: "{{ openshift_cerebro_es_port }}"
+    cpu_limit: "{{ openshift_cerebro_cpu_limit }}"
+    memory_limit: "{{ openshift_cerebro_memory_limit }}"
+    replicas: "{{ openshift_cerebro_replicas | default (0) }}"
+    node_selector: "{{ openshift_cerebro_nodeselector | default({}) }}"
+    cluster_name: "{{ openshift_cerebro_escluster_name }}"
+
+- name: Set Cerebro DC
+  oc_obj:
+    state: present
+    name: "{{ cerebro_name }}"
+    namespace: "{{ openshift_cerebro_namespace }}"
+    kind: dc
+    files:
+    - "{{ tempdir }}/templates/cerebro-dc.yaml"
+    delete_after: true
+
+# Scale up Kibana -- is this really necessary?
+- name: Start Cerebro
+  oc_scale:
+    kind: dc
+    name: "{{ cerebro_name }}"
+    namespace: "{{ openshift_cerebro_namespace }}"
+    replicas: "{{ openshift_cerebro_replicas | default (1) }}"
+
+# update master configs?
+
+- name: Delete temp directory
+  file:
+    name: "{{ tempdir }}"
+    state: absent
+  changed_when: False
