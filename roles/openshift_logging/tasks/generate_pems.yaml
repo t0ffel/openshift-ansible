@@ -15,7 +15,7 @@
     -subj "/CN={{component}}/OU=OpenShift/O=Logging/subjectAltName=DNS.1=localhost{{cert_ext.stdout}}" -days 712 -nodes
   when:
     - not key_file.stat.exists
-    - cert_ext.stdout is defined
+    - cert_ext is defined
   check_mode: no
 
 - name: Creating cert req for {{component}}
@@ -24,7 +24,7 @@
     -subj "/CN={{component}}/OU=OpenShift/O=Logging" -days 712 -nodes
   when:
     - not key_file.stat.exists
-    - cert_ext.stdout is undefined
+    - cert_ext is undefined
   check_mode: no
 
 - name: Sign cert request with CA for {{component}}
