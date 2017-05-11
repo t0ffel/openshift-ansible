@@ -2,8 +2,8 @@ cluster:
   name: ${CLUSTER_NAME}
 
 script:
-  inline: on
-  stored: on
+  inline: true
+  stored: true
 
 node:
   master: ${IS_MASTER}
@@ -26,20 +26,17 @@ cloud:
 discovery:
   zen.hosts_provider: kubernetes
   zen.ping.unicast.hosts: ${SERVICE_DNS}
-#  minimum_master_nodes: ${NUMBER_OF_MASTERS}
+  zen.minimum_master_nodes: ${MASTERS_QUORUM}
 
 plugin.mandatory: discovery-kubernetes
 
-#discovery:
-#  type: kubernetes
-#  zen.ping.multicast.enabled: false
-
 gateway:
-  expected_master_nodes: ${NODE_QUORUM}
+  expected_master_nodes: ${MASTERS_QUORUM}
   # ^^^ should be full number of master nodes.
   recover_after_nodes: ${RECOVER_AFTER_NODES}
   ## ^^ node quorum
   expected_nodes: ${RECOVER_EXPECTED_NODES}
+  expected_data_nodes: ${RECOVER_EXPECTED_DATA_NODES}
   recover_after_time: ${RECOVER_AFTER_TIME}
 # add recover_after_master - masters quorum.
 
