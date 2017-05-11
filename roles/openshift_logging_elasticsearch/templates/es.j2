@@ -114,11 +114,14 @@ spec:
               value: "512m"
 {% endif %}
             -
-              name: "NODE_QUORUM"
-              value: "{{es_node_quorum | int}}"
+              name: "MASTERS_QUORUM"
+              value: "{{es_masters_quorum | int}}"
             -
               name: "RECOVER_AFTER_NODES"
               value: "{{es_recover_after_nodes}}"
+            -
+              name: "RECOVER_EXPECTED_DATA_NODES"
+              value: "{{es_recover_expected_data_nodes}}"
             -
               name: "RECOVER_EXPECTED_NODES"
               value: "{{es_recover_expected_nodes}}"
