@@ -30,7 +30,7 @@
 
 - name: Gather OpenShift Logging Facts
   openshift_elasticsearch_facts:
-    oc_bin: "{{openshift.common.client_binary}}"
+    oc_bin: "{{client_binary}}"
     openshift_namespace: "{{openshift_elasticsearch_namespace}}"
     elasticsearch_clustername: "{{ openshift_elasticsearch_clustername }}"
 

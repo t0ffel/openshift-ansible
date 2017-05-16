@@ -3,6 +3,9 @@ __latest_es_version: "3_5"
 __allowed_es_versions: ["3_5", "3_6"]
 __allowed_es_roles: ["data", "master", "client"]
 
+# Helper
+client_binary: oc
+
 # TODO: integrate these
 openshift_master_config_dir: "{{ openshift.common.config_base }}/master"
 es_masters_quorum: "{{ es_node_topology.masters.replicas |int /2 + 1 }}"
