@@ -1419,6 +1419,7 @@ class OCConfigMap(OpenShiftCLI):
     def __init__(self,
                  name,
                  from_file,
+                 from_dir,
                  from_literal,
                  state,
                  namespace,
@@ -1431,6 +1432,7 @@ class OCConfigMap(OpenShiftCLI):
         self._configmap = None
         self._inc_configmap = None
         self.from_file = from_file if from_file is not None else {}
+        self.from_dir = from_dir
         self.from_literal = from_literal if from_literal is not None else {}
 
     @property
@@ -1459,6 +1461,10 @@ class OCConfigMap(OpenShiftCLI):
     def from_file_to_params(self):
         '''return from_files in a string ready for cli'''
         return ["--from-file={}={}".format(key, value) for key, value in self.from_file.items()]
+
+    def from_dir_to_params(self):
+        '''return from_files in a string ready for cli'''
+        return ["--from-file={}".format(self.from_dir)]
 
     def from_literal_to_params(self):
         '''return from_literal in a string ready for cli'''
@@ -1493,6 +1499,9 @@ class OCConfigMap(OpenShiftCLI):
         if self.from_file is not None:
             cmd.extend(self.from_file_to_params())
 
+        if self.from_dir is not None:
+            cmd.extend(self.from_dir_to_params())
+
         if dryrun:
             cmd.extend(['--dry-run', '-ojson'])
 
@@ -1516,6 +1525,7 @@ class OCConfigMap(OpenShiftCLI):
 
         oc_cm = OCConfigMap(params['name'],
                             params['from_file'],
+                            params['from_dir'],
                             params['from_literal'],
                             params['state'],
                             params['namespace'],
@@ -1617,6 +1627,7 @@ def main():
             namespace=dict(default='default', type='str'),
             name=dict(default=None, required=True, type='str'),
             from_file=dict(default=None, type='dict'),
+            from_dir=dict(default=None, type='str'),
             from_literal=dict(default=None, type='dict'),
         ),
         supports_check_mode=True,

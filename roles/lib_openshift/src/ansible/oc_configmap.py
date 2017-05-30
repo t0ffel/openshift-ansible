@@ -16,6 +16,7 @@ def main():
             namespace=dict(default='default', type='str'),
             name=dict(default=None, required=True, type='str'),
             from_file=dict(default=None, type='dict'),
+            from_dir=dict(default=None, type='str'),
             from_literal=dict(default=None, type='dict'),
         ),
         supports_check_mode=True,
