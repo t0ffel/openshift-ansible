@@ -79,9 +79,6 @@
 - set_fact:
     logging_component: "{{ openshift_elasticsearch_clustername }}"
 
-- set_fact:
-    image: "{{ openshift_elasticsearch_image_prefix }}elasticsearch:{{ openshift_elasticsearch_image_version }}"
-
 # Deploy masters
 - include: "{{ role_path }}/tasks/provision_node.yaml"
   vars:
@@ -95,6 +92,7 @@
     limits: "{{ es_node_topology.masters.limits }}"
     es_node_selector: "{{ es_node_topology.masters.nodeSelector | default({}) }}"
     node_storage_type: emptydir
+    image: "{{ openshift_elasticsearch_image_prefix }}elasticsearch:{{ openshift_elasticsearch_image_version }}"
 
     #    openshift_elasticsearch_pvc_name: "{{ openshift_es_pvc_prefix }}-{{ ( item|int + ( openshift_elasticsearch_facts.elasticsearch.deploymentconfigs | count ) )|string }}"
 
@@ -111,6 +109,7 @@
     limits: "{{ es_node_topology.clients.limits }}"
     es_node_selector: "{{ es_node_topology.clients.nodeSelector | default({}) }}"
     node_storage_type: emptydir
+    image: "{{ openshift_elasticsearch_image_prefix }}elasticsearch:{{ openshift_elasticsearch_image_version }}"
 
 # Deploy data nodes
 - include: "{{ role_path }}/tasks/provision_node.yaml"
@@ -125,6 +124,7 @@
     es_node_selector: "{{ item.1.nodeSelector | default({}) }}"
     node_storage_type: "{{ item.1.node_storage_type | default(emptydir) }}"
     hostmount_path: "{{ item.1.hostmount_path |default ({})}}"
+    image: "{{ openshift_elasticsearch_image_prefix }}elasticsearch:{{ openshift_elasticsearch_image_version }}"
   with_indexed_items: "{{ es_node_topology.data }}"
 
 # TODO: add more vars
