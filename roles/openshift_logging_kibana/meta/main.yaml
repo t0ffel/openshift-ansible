@@ -13,3 +13,9 @@ galaxy_info:
   - cloud
 dependencies:
 - role: lib_openshift
+- role: openshift_logging_certs
+  cert_info:
+    procure_component: kibana-internal
+    hostnames: 'kibana, {{ openshift_logging_kibana_hostname }}'
+  pem_component: "system.logging.kibana"
+  

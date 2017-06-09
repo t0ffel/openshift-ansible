@@ -33,20 +33,6 @@
   when: kibana_ca is not defined
   changed_when: false
 
-# gen session_secret -- if necessary
-# TODO: make idempotent
-- name: Generate proxy session
-  set_fact:
-    session_secret: "{{ 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' | random_word(200) }}"
-  check_mode: no
-
-# gen oauth_secret -- if necessary
-# TODO: make idempotent
-- name: Generate oauth client secret
-  set_fact:
-    oauth_secret: "{{ 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' | random_word(64) }}"
-  check_mode: no
-
 # create oauth client
 - name: Create oauth-client template
   template:
