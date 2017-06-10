@@ -60,11 +60,12 @@ es_node_topology:
 ### Elasticsearch storage layout
 
 # required if the PVC does not already exist
-openshift_elasticsearch_pvc_size: ""
+openshift_elasticsearch_pvc_size: "20Gi"
 openshift_elasticsearch_pvc_dynamic: false
-openshift_elasticsearch_pvc_pv_selector: {}
+openshift_elasticsearch_pvc_pv_selector: false
 openshift_elasticsearch_pvc_access_modes: ['ReadWriteOnce']
 openshift_elasticsearch_storage_group: '65534'
+openshift_logging_es_pvc_prefix: 'es-data-pvc'
 
 openshift_es_pvc_prefix: "{{ openshift_hosted_elasticsearch_pvc_prefix | default('logging-es') }}"
 
