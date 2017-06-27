@@ -2,31 +2,15 @@
 
 - include: determine_version.yaml
 
-
-# secret
-- name: Set ES secret
-  oc_secret:
-    state: present
-    name: "logging-elasticsearch"
-    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
-    files:
-    - name: key
-      path: "{{ generated_certs_dir }}/logging-es.jks"
-    - name: truststore
-      path: "{{ generated_certs_dir }}/truststore.jks"
-    - name: searchguard.key
-      path: "{{ generated_certs_dir }}/elasticsearch.jks"
-    - name: searchguard.truststore
-      path: "{{ generated_certs_dir }}/truststore.jks"
-    - name: admin-key
-      path: "{{ generated_certs_dir }}/system.admin.key"
-    - name: admin-cert
-      path: "{{ generated_certs_dir }}/system.admin.crt"
-    - name: admin-ca
-      path: "{{ generated_certs_dir }}/ca.crt"
-    - name: admin.jks
-      path: "{{ generated_certs_dir }}/system.admin.jks"
-  when: openshift_elasticsearch_secure
+- include_role:
+    name: openshift_logging_certs
+  vars:
+    cert_info:
+      procure_component: es
+      hostnames: 'es'
+    pem_component: "system.logging.es"
+    generate_jks: true
+    generated_certs_dir: '{{ certs_dir }}'
 
 - name: Gather OpenShift Logging Facts
   openshift_elasticsearch_facts:
@@ -88,11 +72,11 @@
     node_data: "false"
     node_client: "false"
     openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-master"
-    generated_certs_dir: "{{openshift.common.config_base}}/logging"
+    generated_certs_dir: "{{ certs_dir }}"
     limits: "{{ es_node_topology.masters.limits }}"
     es_node_selector: "{{ es_node_topology.masters.nodeSelector | default({}) }}"
     node_storage_type: emptydir
-    image: "{{ openshift_elasticsearch_image_prefix }}elasticsearch:{{ openshift_elasticsearch_image_version }}"
+    image: "{{ openshift_elasticsearch_image }}:{{ openshift_elasticsearch_image_version }}"
 
     #    openshift_elasticsearch_pvc_name: "{{ openshift_es_pvc_prefix }}-{{ ( item|int + ( openshift_elasticsearch_facts.elasticsearch.deploymentconfigs | count ) )|string }}"
 
@@ -106,10 +90,11 @@
     node_data: "false"
     node_client: "true"
     openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-client"
+    generated_certs_dir: "{{ certs_dir }}"
     limits: "{{ es_node_topology.clients.limits }}"
     es_node_selector: "{{ es_node_topology.clients.nodeSelector | default({}) }}"
     node_storage_type: emptydir
-    image: "{{ openshift_elasticsearch_image_prefix }}elasticsearch:{{ openshift_elasticsearch_image_version }}"
+    image: "{{ openshift_elasticsearch_image }}:{{ openshift_elasticsearch_image_version }}"
 
 # Deploy data nodes
 - include: "{{ role_path }}/tasks/provision_node.yaml"
@@ -120,12 +105,13 @@
     node_data: "true"
     node_client: "false"
     openshift_elasticsearch_deployment_name: "{{ openshift_elasticsearch_clustername }}-data-{{ item.0 }}"
+    generated_certs_dir: "{{ certs_dir }}"
     limits: "{{ item.1.limits }}"
     es_node_selector: "{{ item.1.nodeSelector | default({}) }}"
     node_storage_type: "{{ item.1.node_storage_type | default(emptydir) }}"
     openshift_elasticsearch_pvc_name: "{{ openshift_logging_es_pvc_prefix }}-{{ item.0 | int }}"
     hostmount_path: "{{ item.1.hostmount_path |default ({})}}"
-    image: "{{ openshift_elasticsearch_image_prefix }}elasticsearch:{{ openshift_elasticsearch_image_version }}"
+    image: "{{ openshift_elasticsearch_image }}:{{ openshift_elasticsearch_image_version }}"
   with_indexed_items: "{{ es_node_topology.data }}"
 
 # TODO: add more vars

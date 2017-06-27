@@ -1,6 +1,6 @@
 ---
 ### Common settings
-openshift_elasticsearch_image_prefix: "{{ openshift_hosted_deployer_prefix | default('docker.io/openshift/origin-') }}"
+openshift_elasticsearch_image: "{{ openshift_hosted_deployer_prefix | default('docker.io/openshift/origin-') }}elasticsearch"
 openshift_elasticsearch_image_version: "{{ openshift_hosted_deployer_version | default('latest') }}"
 openshift_elasticsearch_image_pull_secret: "{{ openshift_hosted_image_pull_secret | default('') }}"
 openshift_elasticsearch_namespace: logging
@@ -13,7 +13,7 @@ openshift_es_port: 9200
 openshift_es_ca: /etc/fluent/keys/ca
 openshift_es_client_cert: /etc/fluent/keys/cert
 openshift_es_client_key: /etc/fluent/keys/key
-openshift_elasticsearch_secure: false
+openshift_elasticsearch_secure: true
 openshift_elasticsearch_clustername: "elastic1"
 openshift_elasticsearch_cluster_size: 1
 ## TODO: replace with computable cluster size

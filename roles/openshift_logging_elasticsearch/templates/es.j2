@@ -162,7 +162,7 @@ spec:
 {% if openshift_elasticsearch_secure %}
         - name: elasticsearch
           secret:
-            secretName: logging-elasticsearch
+            secretName: {{ es_cluster_name }}-certs
 {% endif %}
         - name: elasticsearch-config
           configMap:

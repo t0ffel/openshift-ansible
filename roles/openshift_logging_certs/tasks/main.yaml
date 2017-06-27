@@ -1,7 +1,7 @@
 ---
 
 - name: Create local temp directory for doing work in
-  local_action: command mktemp -d /tmp/openshift-logging-ansible-XXXXXX
+  local_action: command mktemp -d /tmp/openshift-logging-certs-XXXXXX
   register: local_tmp
   changed_when: False
   check_mode: no

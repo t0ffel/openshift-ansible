@@ -66,3 +66,28 @@ path:
 #  work: /elasticsearch/${CLUSTER_NAME}/work
   scripts: /elasticsearch/${CLUSTER_NAME}/scripts
 
+{% if openshift_elasticsearch_secure %}
+searchguard:
+  authcz.admin_dn:
+  - CN=system.admin,OU=OpenShift,O=Logging
+#  config_index_name: ".searchguard.${HOSTNAME}"
+  ssl:
+    transport:
+      enabled: true
+      enforce_hostname_verification: false
+      keystore_type: JKS
+      keystore_filepath: /etc/elasticsearch/secret/searchguard.key
+      keystore_password: kspass
+      truststore_type: JKS
+      truststore_filepath: /etc/elasticsearch/secret/searchguard.truststore
+      truststore_password: tspass
+    http:
+      enabled: true
+      keystore_type: JKS
+      keystore_filepath: /etc/elasticsearch/secret/key
+      keystore_password: kspass
+      clientauth_mode: OPTIONAL
+      truststore_type: JKS
+      truststore_filepath: /etc/elasticsearch/secret/truststore
+      truststore_password: tspass
+{% endif %}

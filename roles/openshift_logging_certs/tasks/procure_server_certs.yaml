@@ -1,4 +1,11 @@
 ---
+
+# allow passing in a tempdir
+- name: Create temp directory for doing work in
+  command: mktemp -d /tmp/openshift-logging-cert-ansible-XXXXXX
+  register: mktemp
+  changed_when: False
+
 - name: Checking for {{ cert_info.procure_component }}.crt
   stat: path="{{generated_certs_dir}}/{{ cert_info.procure_component }}.crt"
   register: component_cert_file
@@ -56,3 +63,9 @@
   - cert_info[ cert_info.procure_component + '_key' ] is defined
   - not component_key_file.stat.exists
   - not component_cert_file.stat.exists
+
+- name: Delete temp directory
+  file:
+    name: "{{ mktemp.stdout }}"
+    state: absent
+  changed_when: False

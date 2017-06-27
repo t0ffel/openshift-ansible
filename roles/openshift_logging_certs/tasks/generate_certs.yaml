@@ -83,8 +83,9 @@
   vars:
     component: '{{ pem_component }}'
 
-  #- name: Creating necessary JKS certs
-  #  include: generate_jks.yaml
+- name: Creating necessary JKS certs
+  include: generate_jks.yaml
+  when: generate_jks | bool
 
 # TODO: make idempotent
 - name: Generate proxy session
