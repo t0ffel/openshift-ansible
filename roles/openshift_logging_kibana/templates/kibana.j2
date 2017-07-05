@@ -62,10 +62,10 @@ spec:
                   containerName: kibana
                   resource: limits.memory
 {% if secure_kibana %}
-          volumeMounts:
-            - name: kibana
-              mountPath: /etc/kibana/keys
-              readOnly: true
+#          volumeMounts:
+#            - name: kibana
+#              mountPath: /etc/kibana/keys
+#              readOnly: true
 {% endif %}
 {% if oauth_proxy %}
         -
@@ -93,11 +93,11 @@ spec:
           - -upstream=http://localhost:5601
           - -provider=openshift
           - -redirect-url=https:///oauth2/callback
-          - '-openshift-sar={"namespace": "{{ namespace }}", "verb": "list", "resource": "services"}'
+#          - '-openshift-sar={"namespace": "{{ namespace }}", "verb": "list", "resource": "services"}'
           - -tls-cert=/etc/tls/private/tls.crt
           - -tls-key=/etc/tls/private/tls.key
           - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
-          - -cookie-secret-file=/etc/proxy/secrets/session_secret
+          - -cookie-secret-file=/etc/proxy/secrets/session-secret
 
           volumeMounts:
             - name: kibana-tls
@@ -107,16 +107,17 @@ spec:
               readOnly: true
 {% endif %}
 {% if secure_kibana %}
-      volumes:
-        - name: kibana
-          secret:
-            secretName: logging-kibana
+#      volumes:
+#        - name: kibana
+#          secret:
+#            secretName: logging-kibana
 {% endif %}
 {% if oauth_proxy %}
+      volumes:
         - name: session-secret
           secret:
             secretName: kibana-session-secret
         - name: kibana-tls
           secret:
-            secretName: kibana-tls
+            secretName: kibana-oauth-tls
 {% endif %}

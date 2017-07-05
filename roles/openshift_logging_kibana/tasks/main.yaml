@@ -3,6 +3,16 @@
 
 - include: determine_version.yaml
 
+- include_role:
+    name: openshift_logging_certs
+  vars:
+    cert_info:
+      procure_component: kibana-internal
+      hostnames: 'tecentos.local, kibana, {{ openshift_logging_kibana_hostname }}'
+    pem_component: "system.logging.kibana"
+    generate_jks: true
+    generated_certs_dir: '{{ certs_dir }}'
+
 # allow passing in a tempdir
 - name: Create temp directory for doing work in
   command: mktemp -d /tmp/openshift-logging-ansible-XXXXXX
@@ -29,6 +39,7 @@
     name: "{{ openshift_logging_kibana_service_account }}"
     namespace: "{{ openshift_kibana_namespace }}"
     image_pull_secrets: "{{ openshift_logging_image_pull_secret }}"
+    kubeconfig: '{{ kubeconfig }}'
   when: openshift_logging_image_pull_secret is defined
 
 - name: Create Kibana service account
@@ -36,14 +47,43 @@
     state: present
     name: "{{ openshift_logging_kibana_service_account }}"
     namespace: "{{ openshift_kibana_namespace }}"
+    kubeconfig: '{{ kubeconfig }}'
   when:
   - openshift_logging_image_pull_secret is not defined
 
+# View role and binding
+- name: Generate logging-kibana-view-role
+  template:
+    src: rolebinding.j2
+    dest: "{{mktemp.stdout}}/logging-kibana-view-role.yaml"
+  vars:
+    obj_name: logging-kibana-view-role
+    roleRef:
+      name: cluster-reader
+    subjects:
+      - kind: ServiceAccount
+        name: "{{ openshift_logging_kibana_service_account }}"
+        namespace: "{{ openshift_kibana_namespace }}"
+  changed_when: no
+
+- name: Set logging-kibana-view-role role
+  oc_obj:
+    state: present
+    name: "logging-kibana-view-role"
+    kind: clusterrolebinding
+    namespace: "{{ openshift_kibana_namespace }}"
+    files:
+    - "{{ tempdir }}/logging-kibana-view-role.yaml"
+    delete_after: true
+    kubeconfig: '{{ kubeconfig }}'
+
+# Kibana DeploymentConfig name
 - set_fact: kibana_name="{{ openshift_kibana_escluster_name }}-kibana"
-#{{ 'logging-kibana' ~ ( (openshift_logging_kibana_ops_deployment | default(false) | bool) | ternary('-ops', '')) }}"
 
 - name: Secure stuff
   include: '{{ role_path }}/tasks/certs.yaml'
+  vars:
+    generated_certs_dir: '{{ certs_dir }}'
   when: secure_kibana|bool
 
 # create routes
@@ -53,21 +93,31 @@
   when: openshift_logging_kibana_key | trim | length > 0
   changed_when: false
 
-# Services
+# Service creation
 - name: create Kibana service
   oc_service:
     namespace: "{{ openshift_kibana_namespace }}"
     name: "{{ kibana_name }}"
     ports:
-    - name: 5601-tcp
-      port: 5601
+    - name: 8443-tcp
+      port: 8443
       protocol: TCP
     selector:
       cluster-name: "{{ openshift_kibana_escluster_name }}"
       es-component: "kibana"
+#    annotations:
+#      service.alpha.openshift.io/serving-cert-secret-name: kibana-tls
     session_affinity: ClientIP
     service_type: ClusterIP
+    kubeconfig: '{{ kubeconfig }}'
 
+- name: Oauth proxy stuff
+  include: '{{ role_path }}/tasks/oauth_proxy.yaml'
+  vars:
+    generated_certs_dir: '{{ certs_dir }}'
+  when: oauth_proxy|bool
+
+# Kibana route
 - name: Generating Kibana secure route template
   template:
     src: route_reencrypt.j2
@@ -78,15 +128,15 @@
     service_name: "{{ kibana_name }}"
     tls_key: "{{ kibana_key | default('') | b64decode }}"
     tls_cert: "{{ kibana_cert | default('') | b64decode }}"
-    tls_ca_cert: "{{ kibana_ca | b64decode }}"
-    tls_dest_ca_cert: "{{ key_pairs | entry_from_named_pair('ca_file') | b64decode }}"
+    tls_ca_cert: "{{ kibana_ca | default('') | b64decode }}"
+    tls_dest_ca_cert: "{{ key_pairs | entry_from_named_pair('kibana_internal_cert') | b64decode }}"
     edge_term_policy: "{{ openshift_logging_kibana_edge_term_policy | default('') }}"
     labels:
       component: support
       logging-infra: support
       provider: openshift
   changed_when: no
-  when: secure_kibana|bool
+  when: oauth_proxy|bool
 
 - name: Generating Kibana route template
   template:
@@ -102,7 +152,7 @@
       logging-infra: support
       provider: openshift
   changed_when: no
-  when: not secure_kibana|bool
+  when: not oauth_proxy|bool
 
 - name: Setting Kibana route
   oc_obj:
@@ -112,10 +162,7 @@
     kind: route
     files:
     - "{{ tempdir }}/templates/kibana-route.yaml"
-
-- name: Oauth proxy stuff
-  include: '{{ role_path }}/tasks/oauth_proxy.yaml'
-  when: oauth_proxy|bool
+    kubeconfig: '{{ kubeconfig }}'
 
 # create Kibana DC
 - name: Generate Kibana DC template
@@ -149,6 +196,7 @@
     files:
     - "{{ tempdir }}/templates/kibana-dc.yaml"
     delete_after: true
+    kubeconfig: '{{ kubeconfig }}'
 
 # Scale up Kibana -- is this really necessary?
 - name: Start Kibana
@@ -157,6 +205,7 @@
     name: "{{ kibana_name }}"
     namespace: "{{ openshift_kibana_namespace }}"
     replicas: "{{ openshift_logging_kibana_replicas | default (1) }}"
+    kubeconfig: '{{ kubeconfig }}'
 
 # update master configs?
 

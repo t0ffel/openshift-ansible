@@ -10,7 +10,7 @@ metadata:
 {% endif %}
 spec:
   host: {{ route_host }}
-{% if secure_kibana %}
+{% if oauth_proxy %}
   tls:
 {% if tls_key is defined and tls_key | length > 0 %}
     key: |

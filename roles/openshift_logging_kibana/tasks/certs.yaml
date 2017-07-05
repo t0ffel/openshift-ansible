@@ -51,26 +51,31 @@
     files:
     - "{{ tempdir }}/templates/oauth-client.yml"
     delete_after: true
+    kubeconfig: '{{ kubeconfig }}'
 
 # create Kibana secret
 - name: Set Kibana secret
   oc_secret:
     state: present
-    name: "logging-kibana"
+    name: "kibana-oauth-tls"
     namespace: "{{ openshift_kibana_namespace }}"
     files:
-    - name: ca
+    - name: tls.crt
       path: "{{ generated_certs_dir }}/ca.crt"
-    - name: key
-      path: "{{ generated_certs_dir }}/system.logging.kibana.key"
-    - name: cert
-      path: "{{ generated_certs_dir }}/system.logging.kibana.crt"
+    - name: tls.key
+      path: "{{ generated_certs_dir }}/ca.key"
+
+#    - name: tls.key
+#      path: "{{ generated_certs_dir }}/system.logging.kibana.key"
+#    - name: tls.crt
+#      path: "{{ generated_certs_dir }}/system.logging.kibana.crt"
+    kubeconfig: '{{ kubeconfig }}'
 
 # create Kibana-proxy secret
 - name: Set Kibana Proxy secret
   oc_secret:
     state: present
-    name: "logging-kibana-proxy"
+    name: "kibana-session-secret"
     namespace: "{{ openshift_kibana_namespace }}"
 #    files:
 #    - name: server-key
@@ -79,6 +84,7 @@
 #      path: "{{ generated_certs_dir }}/kibana-internal.crt"
 #    - name: server-tls
 #      path: "{{ generated_certs_dir }}/server-tls.json"
+    kubeconfig: '{{ kubeconfig }}'
     contents:
     - path: oauth-secret
       data: "{{ oauth_secret }}"
@@ -90,5 +96,3 @@
       data: "{{ key_pairs | entry_from_named_pair('kibana_internal_cert') | b64decode }}"
     - path: server-tls
       data: "{{ key_pairs | entry_from_named_pair('server_tls') | b64decode }}"
-
-

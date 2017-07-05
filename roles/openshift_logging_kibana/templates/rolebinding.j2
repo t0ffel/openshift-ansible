@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{obj_name}}
+roleRef:
+{% if roleRef.kind is defined %}
+  kind: {{ roleRef.kind }}
+{% endif %}
+  name: {{ roleRef.name }}
+subjects:
+{% for sub in subjects %}
+  - kind: {{ sub.kind }}
+    name: {{ sub.name }}
+    namespace: {{ sub.namespace }}
+{% endfor %}
