@@ -15,13 +15,15 @@ class ServiceConfig(object):
                  cluster_ip=None,
                  portal_ip=None,
                  session_affinity=None,
-                 service_type=None):
+                 service_type=None,
+                 annotations=None):
         ''' constructor for handling service options '''
         self.name = sname
         self.namespace = namespace
         self.ports = ports
         self.selector = selector
         self.labels = labels
+        self.annotations = annotations
         self.cluster_ip = cluster_ip
         self.portal_ip = portal_ip
         self.session_affinity = session_affinity
@@ -39,7 +41,11 @@ class ServiceConfig(object):
         self.data['metadata']['namespace'] = self.namespace
         if self.labels:
             for lab, lab_value  in self.labels.items():
-                self.data['metadata'][lab] = lab_value
+                self.data['metadata'][lab] = json.dumps(lab_value)
+        if self.annotations:
+            self.data['metadata']['annotations'] = {}
+            for anno, anno_value in self.annotations.items():
+                self.data['metadata']['annotations'][anno] = anno_value
         self.data['spec'] = {}
 
         if self.ports:
