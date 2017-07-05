@@ -36,6 +36,7 @@
       es-component: cerebro
     session_affinity: ClientIP
     service_type: ClusterIP
+    kubeconfig: '{{ kubeconfig }}'
 
 - name: Generating Cerebro route template
   template:
@@ -60,6 +61,7 @@
     kind: route
     files:
     - "{{ tempdir }}/templates/cerebro-route.yaml"
+    kubeconfig: '{{ kubeconfig }}'
 
 - template:
     src: cerebro.conf.j2
@@ -75,6 +77,7 @@
     namespace: "{{ openshift_cerebro_namespace }}"
     from_file:
       cerebro.conf: "{{ tempdir }}/cerebro.conf"
+    kubeconfig: '{{ kubeconfig }}'
 
 # create Cerebro DC
 - name: Generate Cerebro DC template
@@ -103,6 +106,7 @@
     files:
     - "{{ tempdir }}/templates/cerebro-dc.yaml"
     delete_after: true
+    kubeconfig: '{{ kubeconfig }}'
 
 # Scale up Kibana -- is this really necessary?
 - name: Start Cerebro
@@ -111,6 +115,7 @@
     name: "{{ cerebro_name }}"
     namespace: "{{ openshift_cerebro_namespace }}"
     replicas: "{{ openshift_cerebro_replicas | default (1) }}"
+    kubeconfig: '{{ kubeconfig }}'
 
 # update master configs?
 
