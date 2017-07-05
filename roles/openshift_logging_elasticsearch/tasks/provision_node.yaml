@@ -61,6 +61,7 @@
     files:
     - "{{ tempdir }}/templates/logging-es-pvc.yml"
     delete_after: true
+    kubeconfig: '{{ kubeconfig }}'
   when:
   - node_storage_type == "pvc"
 
@@ -98,6 +99,7 @@
     files:
     - "{{ tempdir }}/templates/logging-es-dc.yml"
     delete_after: true
+    kubeconfig: '{{ kubeconfig }}'
 
 # scale up
 - name: Start Elasticsearch
@@ -106,6 +108,7 @@
     name: "{{ es_deploy_name }}"
     namespace: "{{ openshift_elasticsearch_namespace }}"
     replicas: "{{ replicas | default(1) }}"
+    kubeconfig: '{{ kubeconfig }}'
 
 ## Placeholder for migration when necessary ##
 

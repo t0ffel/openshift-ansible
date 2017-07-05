@@ -17,6 +17,7 @@
     oc_bin: "{{client_binary}}"
     openshift_namespace: "{{openshift_elasticsearch_namespace}}"
     elasticsearch_clustername: "{{ openshift_elasticsearch_clustername }}"
+    admin_kubeconfig: "{{ kubeconfig }}"
 
 - name: Validate Elasticsearch cluster size
   fail: msg="The openshift_elasticsearch_cluster_size may only be scaled down manually. Please see official documentation on how to do this."
@@ -26,6 +27,7 @@
   oc_project:
     state: present
     name: "{{ openshift_elasticsearch_namespace }}"
+    kubeconfig: '{{ kubeconfig }}'
 
 # Set up service accounts and roles
 - include: "{{ role_path }}/tasks/service_accounts.yaml"
@@ -45,6 +47,7 @@
       es-node-role: "client"
     session_affinity: ClientIP
     service_type: ClusterIP
+    kubeconfig: '{{ kubeconfig }}'
 
 - name: create Elasticsearch 9300 service
   oc_service:
@@ -58,6 +61,7 @@
       cluster-name: "{{ openshift_elasticsearch_clustername }}"
       es-node-role: "master"
     clusterip: None
+    kubeconfig: '{{ kubeconfig }}'
 
 # Set variables common for all DCs
 - set_fact:

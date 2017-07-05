@@ -41,6 +41,7 @@
       elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
       jvm.options: "{{ tempdir }}/jvm.options"
       log4j2.properties: "{{ tempdir  }}/log4j2.properties"
+    kubeconfig: '{{ kubeconfig }}'
 #  when:
 
 # secret
@@ -66,6 +67,5 @@
       path: "{{ generated_certs_dir }}/ca.crt"
     - name: admin.jks
       path: "{{ generated_certs_dir }}/system.admin.jks"
+    kubeconfig: '{{ kubeconfig }}'
   when: openshift_elasticsearch_secure
-
-
