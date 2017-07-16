@@ -77,8 +77,17 @@ spec:
             initialDelaySeconds: 480
             periodSeconds: 5
           readinessProbe:
+{% if es_role == "master" %}
             tcpSocket:
               port: 9300
+{% else %}
+            exec:
+              command:
+              - "/usr/share/elasticsearch/probe/readiness.sh"
+              initialDelaySeconds: 10
+              timeoutSeconds: 30
+              periodSeconds: 5
+{% endif %}
           ports:
             -
               containerPort: 9200
@@ -137,9 +146,6 @@ spec:
             -
               name: NODE_INGEST
               value: "false"
-            -
-              name: HTTP_ENABLED
-              value: "{{ node_client }}"
           volumeMounts:
 {% if openshift_elasticsearch_secure %}
             - name: elasticsearch
