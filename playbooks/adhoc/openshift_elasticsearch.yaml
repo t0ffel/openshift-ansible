@@ -3,6 +3,30 @@
   roles:
   - role: openshift_logging_elasticsearch
     openshift_hosted_logging_cleanup: no
-    openshift_elasticsearch_image_prefix: "t0ffel/"
+    openshift_elasticsearch_image: "t0ffel/elasticsearch"
     openshift_elasticsearch_namespace: elasticsearch
+    kubeconfig: /home/anton/.kube/config
+    certs_dir: /home/anton/src/openshift-ansible/certs/
+    openshift_elasticsearch_secure: true
 
+    es_node_topology:
+      masters:
+        replicas: 1
+        limits:
+          cpu: 200m
+        requests:
+          memory: 512Mi
+      clients:
+        replicas: 1
+        limits:
+          memory: 1024Mi
+          cpu: 200m
+      data:
+      -
+        node_storage_type: emptydir
+        hostmount_path:
+        - /mnt/data1
+        - /mnt/data2
+        limits:
+          memory: 2048Mi
+          cpu: 200m
