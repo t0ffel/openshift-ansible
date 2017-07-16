@@ -1,7 +1,7 @@
 ---
 __latest_es_version: "3_5"
 __allowed_es_versions: ["3_5", "3_6"]
-__allowed_es_roles: ["data", "master", "client"]
+__allowed_es_roles: ["data", "master", "client", "elasticsearch-init"]
 
 # Helper
 client_binary: oc

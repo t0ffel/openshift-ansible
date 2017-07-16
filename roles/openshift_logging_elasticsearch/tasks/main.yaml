@@ -7,8 +7,8 @@
   vars:
     cert_info:
       procure_component: es
-      hostnames: 'es'
-    pem_component: "system.logging.es"
+      hostnames: 'es, {{ openshift_elasticsearch_clustername }}'
+    pem_component: "system.admin"
     generate_jks: true
     generated_certs_dir: '{{ certs_dir }}'
 
@@ -117,6 +117,15 @@
     hostmount_path: "{{ item.1.hostmount_path |default ({})}}"
     image: "{{ openshift_elasticsearch_image }}:{{ openshift_elasticsearch_image_version }}"
   with_indexed_items: "{{ es_node_topology.data }}"
+
+# Deploy Elasticsearch init pod
+- include: "{{ role_path }}/tasks/provision_init_node.yaml"
+  vars:
+    es_svc_name: "{{ openshift_elasticsearch_clustername }}"
+    es_role: elasticsearch-init
+    es_deploy_name: "{{ openshift_elasticsearch_clustername }}-es-init"
+    generated_certs_dir: "{{ certs_dir }}"
+    image: "{{ openshift_elasticsearch_init_image }}:{{ openshift_elasticsearch_init_image_version }}"
 
 # TODO: add more vars
 # We don't allow scaling down of ES nodes currently

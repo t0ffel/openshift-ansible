@@ -3,8 +3,9 @@
   roles:
   - role: openshift_logging_elasticsearch
     openshift_hosted_logging_cleanup: no
-    openshift_elasticsearch_image: "t0ffel/elasticsearch"
+    openshift_elasticsearch_image: "t0ffel/elasticsearch-sg"
     openshift_elasticsearch_namespace: elasticsearch
+    openshift_elasticsearch_init_image: "t0ffel/elasticsearch-init"
     kubeconfig: /home/anton/.kube/config
     certs_dir: /home/anton/src/openshift-ansible/certs/
     openshift_elasticsearch_secure: true
@@ -28,5 +29,5 @@
         - /mnt/data1
         - /mnt/data2
         limits:
-          memory: 2048Mi
+          memory: 512Mi
           cpu: 200m
