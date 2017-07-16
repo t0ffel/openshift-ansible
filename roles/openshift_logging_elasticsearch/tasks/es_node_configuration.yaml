@@ -52,11 +52,11 @@
     namespace: "{{ openshift_elasticsearch_namespace }}"
     files:
     - name: key
-      path: "{{ generated_certs_dir }}/logging-es.jks"
+      path: "{{ generated_certs_dir }}/{{ openshift_elasticsearch_clustername }}.jks"
     - name: truststore
       path: "{{ generated_certs_dir }}/truststore.jks"
     - name: searchguard.key
-      path: "{{ generated_certs_dir }}/elasticsearch.jks"
+      path: "{{ generated_certs_dir }}/{{ openshift_elasticsearch_clustername }}-cluster.jks"
     - name: searchguard.truststore
       path: "{{ generated_certs_dir }}/truststore.jks"
     - name: admin-key

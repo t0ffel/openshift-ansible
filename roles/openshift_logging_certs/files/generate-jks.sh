@@ -159,17 +159,18 @@ fi
 dir=$1
 SCRATCH_DIR=$dir
 PROJECT=${2:-logging}
+ES_CLUSTER_NAME=${3:-logging-es}
 
 if [[ ! -f $dir/system.admin.jks || -z "$(keytool -list -keystore $dir/system.admin.jks -storepass kspass | grep sig-ca)" ]]; then
   generate_JKS_client_cert "system.admin"
 fi
 
-if [[ ! -f $dir/elasticsearch.jks || -z "$(keytool -list -keystore $dir/elasticsearch.jks -storepass kspass | grep sig-ca)" ]]; then
-  generate_JKS_chain true elasticsearch "$(join , logging-es{,-ops})"
+if [[ ! -f $dir/${ES_CLUSTER_NAME}-cluster.jks || -z "$(keytool -list -keystore $dir/${ES_CLUSTER_NAME}-cluster.jks -storepass kspass | grep sig-ca)" ]]; then
+  generate_JKS_chain true ${ES_CLUSTER_NAME}-cluster "$(join , ${ES_CLUSTER_NAME}{,-cluster})"
 fi
 
-if [[ ! -f $dir/logging-es.jks || -z "$(keytool -list -keystore $dir/logging-es.jks -storepass kspass | grep sig-ca)" ]]; then
-  generate_JKS_chain false logging-es "$(join , logging-es{,-ops}{,-cluster}{,.${PROJECT}.svc.cluster.local})"
+if [[ ! -f $dir/${ES_CLUSTER_NAME}.jks || -z "$(keytool -list -keystore $dir/${ES_CLUSTER_NAME}.jks -storepass kspass | grep sig-ca)" ]]; then
+  generate_JKS_chain false ${ES_CLUSTER_NAME} "$(join , ${ES_CLUSTER_NAME}{,.${PROJECT}.svc.cluster.local})"
 fi
 
 [ ! -f $dir/truststore.jks ] && createTruststore
