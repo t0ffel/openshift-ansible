@@ -62,10 +62,10 @@ spec:
                   containerName: kibana
                   resource: limits.memory
 {% if secure_kibana %}
-#          volumeMounts:
-#            - name: kibana
-#              mountPath: /etc/kibana/keys
-#              readOnly: true
+          volumeMounts:
+            - name: kibana
+              mountPath: /etc/kibana/keys
+              readOnly: true
 {% endif %}
 {% if oauth_proxy %}
         -
@@ -107,13 +107,12 @@ spec:
               readOnly: true
 {% endif %}
 {% if secure_kibana %}
-#      volumes:
-#        - name: kibana
-#          secret:
-#            secretName: logging-kibana
+      volumes:
+        - name: kibana
+          secret:
+            secretName: kibana-searchguard-certs
 {% endif %}
 {% if oauth_proxy %}
-      volumes:
         - name: session-secret
           secret:
             secretName: kibana-session-secret

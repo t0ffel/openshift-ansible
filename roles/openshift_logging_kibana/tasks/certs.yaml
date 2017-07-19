@@ -54,7 +54,7 @@
     kubeconfig: '{{ kubeconfig }}'
 
 # create Kibana secret
-- name: Set Kibana secret
+- name: Set Kibana oauth-proxy TLS secret
   oc_secret:
     state: present
     name: "kibana-oauth-tls"
@@ -69,6 +69,20 @@
 #      path: "{{ generated_certs_dir }}/system.logging.kibana.key"
 #    - name: tls.crt
 #      path: "{{ generated_certs_dir }}/system.logging.kibana.crt"
+    kubeconfig: '{{ kubeconfig }}'
+
+- name: Set Kibana searchguard certs secret
+  oc_secret:
+    state: present
+    name: "kibana-searchguard-certs"
+    namespace: "{{ openshift_kibana_namespace }}"
+    files:
+    - name: ca
+      path: "{{ generated_certs_dir }}/ca.crt"
+    - name: key
+      path: "{{ generated_certs_dir }}/system.logging.kibana.key"
+    - name: cert
+      path: "{{ generated_certs_dir }}/system.logging.kibana.crt"
     kubeconfig: '{{ kubeconfig }}'
 
 # create Kibana-proxy secret

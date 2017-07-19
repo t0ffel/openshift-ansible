@@ -79,9 +79,14 @@
 
 # system.logging.kibana
 - name: Generate PEM certs
-  include: generate_pems.yaml
-  vars:
-    component: '{{ pem_component }}'
+  include: generate_pems.yaml component={{node_name}}
+  with_items:
+    - system.logging.fluentd
+    - system.logging.kibana
+    - system.logging.curator
+    - system.admin
+  loop_control:
+    loop_var: node_name
 
 - name: Creating necessary JKS certs
   include: generate_jks.yaml
