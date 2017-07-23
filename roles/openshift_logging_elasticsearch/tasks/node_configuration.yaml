@@ -1,0 +1,37 @@
+---
+# configmap
+- template:
+    src: elasticsearch-logging.yml.j2
+    dest: "{{ tempdir }}/elasticsearch-logging.yml"
+  when: es_logging_contents is undefined
+  changed_when: no
+
+- template:
+    src: elasticsearch.yml.j2
+    dest: "{{ tempdir }}/elasticsearch.yml"
+  vars:
+    allow_cluster_reader: "{{ openshift_logging_elasticsearch_ops_allow_cluster_reader | lower | default('false') }}"
+  when: es_config_contents is undefined
+  changed_when: no
+
+- copy:
+    content: "{{ es_logging_contents }}"
+    dest: "{{ tempdir }}/elasticsearch-logging.yml"
+  when: es_logging_contents is defined
+  changed_when: no
+
+- copy:
+    content: "{{ es_config_contents }}"
+    dest: "{{ tempdir }}/elasticsearch.yml"
+  when: es_config_contents is defined
+  changed_when: no
+
+- name: Set ES configmap
+  oc_configmap:
+    state: present
+    name: "{{ node_configmap }}"
+    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+    from_file:
+      elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
+      logging.yml: "{{ tempdir }}/elasticsearch-logging.yml"
+
