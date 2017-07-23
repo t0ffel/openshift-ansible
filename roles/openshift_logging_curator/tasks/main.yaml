@@ -124,7 +124,7 @@
     state: present
     name: "{{ curator_name }}"
     namespace: "{{ openshift_logging_namespace }}"
-    kind: dc
+    kind: DeploymentConfig
     files:
       - "{{ tempdir }}/templates/curator-dc.yaml"
     delete_after: true
