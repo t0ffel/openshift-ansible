@@ -100,7 +100,7 @@ openshift_logging_es_cpu_request: "1"
 # the logging appenders for the root loggers to write ES logs. Valid values: 'file', 'console'
 openshift_logging_es_log_appenders: ['file']
 openshift_logging_es_memory_limit: "8Gi"
-openshift_logging_es_pv_selector: "{{ openshift_logging_storage_labels | default('') }}"
+openshift_logging_es_pv_selector: "{{ openshift_logging_storage_labels | default({}) }}"
 openshift_logging_es_pvc_dynamic: "{{ openshift_logging_elasticsearch_pvc_dynamic | default(False) }}"
 openshift_logging_es_pvc_size: ''
 openshift_logging_es_pvc_prefix: "{{ openshift_logging_elasticsearch_pvc_prefix | default('logging-es') }}"
@@ -138,7 +138,7 @@ openshift_logging_es_ops_cluster_size: "{{ openshift_logging_elasticsearch_ops_c
 openshift_logging_es_ops_cpu_limit: null
 openshift_logging_es_ops_memory_limit: 8Gi
 openshift_logging_es_ops_cpu_request: "1"
-openshift_logging_es_ops_pv_selector: "{{ openshift_loggingops_storage_labels | default('') }}"
+openshift_logging_es_ops_pv_selector: "{{ openshift_loggingops_storage_labels | default({}) }}"
 openshift_logging_es_ops_pvc_dynamic: "{{ openshift_logging_elasticsearch_ops_pvc_dynamic | default(False) }}"
 openshift_logging_es_ops_pvc_size: "{{ openshift_logging_elasticsearch_ops_pvc_size | default('') }}"
 openshift_logging_es_ops_pvc_prefix: "{{ openshift_logging_elasticsearch_ops_pvc_prefix | default('logging-es-ops') }}"
@@ -188,3 +188,7 @@ openshift_logging_mux_namespaces: []
 #fluentd_secureforward_contents:
 #fluentd_mux_config_contents:
 #fluentd_mux_secureforward_contents:
+
+openshift_logging_es_node_topology: []
+
+openshift_logging_es_ops_node_topology: []
