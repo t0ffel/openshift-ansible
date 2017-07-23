@@ -9,7 +9,7 @@
     state: list
     name: "{{ _es_node }}"
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
-    kind: dc
+    kind: DeploymentConfig
   register: _dc_output
   until:
     - _dc_output.results.results[0].status is defined
