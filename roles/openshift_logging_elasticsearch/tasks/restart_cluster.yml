@@ -62,7 +62,7 @@
     - full_restart_cluster | bool
 
   - command: >
-      {{ openshift_client_binary }} get dc -l component={{ _cluster_component }},provider=openshift -n {{ openshift_logging_elasticsearch_namespace }} -o jsonpath={.items[*].metadata.name}
+      {{ openshift_client_binary }} get deploymentconfig -l component={{ _cluster_component }},provider=openshift -n {{ openshift_logging_elasticsearch_namespace }} -o jsonpath={.items[*].metadata.name}
     register: _cluster_dcs
 
   # If we are currently restarting the "es" cluster we want to check if we are scaling up the number of es nodes

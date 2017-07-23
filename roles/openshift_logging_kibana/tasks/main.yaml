@@ -262,7 +262,7 @@
     state: present
     name: "{{ kibana_name }}"
     namespace: "{{ openshift_logging_namespace }}"
-    kind: dc
+    kind: DeploymentConfig
     files:
       - "{{ tempdir }}/templates/kibana-dc.yaml"
     delete_after: true

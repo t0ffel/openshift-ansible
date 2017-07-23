@@ -1,5 +1,5 @@
 ---
-__allowed_es_types: ["data-master", "data-client", "master", "client"]
+__allowed_es_types: ["clientdatamaster", "data-master", "data-client", "master", "client"]
 __es_log_appenders: ['file', 'console']
 __kibana_index_modes: ["unique", "shared_ops"]
 
@@ -14,3 +14,7 @@ es_min_masters: "{{ (openshift_logging_elasticsearch_replica_count == 1) | terna
 es_recover_after_nodes: "{{ openshift_logging_elasticsearch_replica_count | int }}"
 es_recover_expected_nodes: "{{ openshift_logging_elasticsearch_replica_count | int }}"
 full_restart_cluster: False
+openshift_elasticsearch_recover_after_time: 5m
+
+#es_masters_quorum: "{{ es_node_topology.masters.replicas |int /2 + 1 }}"
+#es_recover_expected_data_nodes: "{{ es_node_topology.clientdata|length }}"
