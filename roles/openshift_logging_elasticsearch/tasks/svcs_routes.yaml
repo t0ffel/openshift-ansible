@@ -1,0 +1,78 @@
+---
+# allow passing in a tempdir
+- name: Create temp directory for Elasticsearch services and routes
+  command: mktemp -d /tmp/openshift-logging-ansible-svcs-XXXXXX
+  register: mktemp
+  changed_when: False
+
+- name: set temp dir
+  set_fact:
+    tempdir: "{{ mktemp.stdout }}"
+
+# services
+- name: Create {{ openshift_logging_elasticsearch_clustername }}-cluster port 9300 service
+  oc_service:
+    state: present
+    name: "{{ openshift_logging_elasticsearch_clustername }}-cluster"
+    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+    selector:
+      cluster-name: "{{ openshift_logging_elasticsearch_clustername }}"
+      es-node-master: "1"
+    labels:
+      logging-infra: 'support'
+      cluster-name: "{{ openshift_logging_elasticsearch_clustername }}"
+    clusterip: None
+    ports:
+      - port: 9300
+
+- name: Set {{ openshift_logging_elasticsearch_clustername }} port 9200 service
+  oc_service:
+    state: present
+    name: "{{ openshift_logging_elasticsearch_clustername }}"
+    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+    selector:
+      cluster-name: "{{ openshift_logging_elasticsearch_clustername }}"
+      es-node-client: "1"
+    labels:
+      logging-infra: 'support'
+      cluster-name: "{{ openshift_logging_elasticsearch_clustername }}"
+    ports:
+      - port: 9200
+        targetPort: "restapi"
+
+- name: Set {{ openshift_logging_elasticsearch_clustername }}-prometheus service
+  oc_service:
+    state: present
+    name: "{{ openshift_logging_elasticsearch_clustername }}-prometheus"
+    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+    labels:
+      cluster-name: '{{ openshift_logging_elasticsearch_clustername }}'
+      logging-infra: 'support'
+    ports:
+      - name: proxy
+        port: 443
+        targetPort: 4443
+    selector:
+      component: "{{ openshift_logging_elasticsearch_clustername }}-prometheus"
+      provider: openshift
+
+- oc_edit:
+    kind: service
+    name: "{{ openshift_logging_elasticsearch_clustername }}-prometheus"
+    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+    separator: '#'
+    content:
+      metadata#annotations#service.alpha.openshift.io/serving-cert-secret-name: "prometheus-tls"
+      metadata#annotations#prometheus.io/scrape: "true"
+      metadata#annotations#prometheus.io/scheme: "https"
+      metadata#annotations#prometheus.io/path: "_prometheus/metrics"
+
+# External routes generation
+- include: "{{ role_path }}/tasks/external_route.yaml"
+  when: openshift_logging_elasticsearch_allow_external | bool
+
+- name: Delete temp directory
+  file:
+    name: "{{ tempdir }}"
+    state: absent
+  changed_when: False
