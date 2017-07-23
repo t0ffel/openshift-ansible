@@ -46,7 +46,14 @@ openshift.operations.allow_cluster_reader: {{allow_cluster_reader | default (fal
 openshift.kibana.index.mode: {{es_kibana_index_mode | default('unique')}}
 
 path:
-  data: /elasticsearch/persistent/${CLUSTER_NAME}/data
+  data:
+{% if storage_type == 'hostmount' %}
+{% for item in hostmount_path %}
+  - /elasticsearch/persistent/{{ loop.index0 }}
+{% endfor %}
+{% else %}
+  - /elasticsearch/persistent/
+{% endif %}
   logs: /elasticsearch/${CLUSTER_NAME}/logs
 
 searchguard:

@@ -4,17 +4,27 @@ metadata:
   name: "{{deploy_name}}"
   labels:
     provider: openshift
-    component: "{{component}}"
+    component: "{{es_component}}"
     deployment: "{{deploy_name}}"
+    cluster-name: "{{ es_cluster_name }}"
     logging-infra: "{{logging_component}}"
+    es-node-role: "{{ es_role }}"
+    es-node-client: "{{ es_http_service }}"
+    es-node-data: "{{ node_data }}"
+    es-node-master: "{{ node_master }}"
 spec:
   replicas: {{es_replicas|default(1)}}
   revisionHistoryLimit: 0
   selector:
     provider: openshift
-    component: "{{component}}"
+    component: "{{es_component}}"
     deployment: "{{deploy_name}}"
+    cluster-name: "{{ es_cluster_name }}"
     logging-infra: "{{logging_component}}"
+    es-node-role: "{{ es_role }}"
+    es-node-client: "{{ es_http_service }}"
+    es-node-data: "{{ node_data }}"
+    es-node-master: "{{ node_master }}"
   strategy:
     type: Recreate
   triggers: []
@@ -24,8 +34,13 @@ spec:
       labels:
         logging-infra: "{{logging_component}}"
         provider: openshift
-        component: "{{component}}"
+        component: "{{es_component}}"
         deployment: "{{deploy_name}}"
+        cluster-name: "{{ es_cluster_name }}"
+        es-node-role: "{{ es_role }}"
+        es-node-client: "{{ es_http_service }}"
+        es-node-data: "{{ node_data }}"
+        es-node-master: "{{ node_master }}"
     spec:
       affinity:
         podAntiAffinity:
@@ -40,7 +55,7 @@ spec:
                   - elasticsearch
             topologyKey: kubernetes.io/hostname
       terminationGracePeriod: 600
-      serviceAccountName: aggregated-logging-elasticsearch
+      serviceAccountName: {{ openshift_logging_elasticsearch_sa_name }}
       securityContext:
         supplementalGroups:
 {% for group in es_storage_groups %}
@@ -57,16 +72,37 @@ spec:
           image: "{{ openshift_logging_elasticsearch_image_prefix }}logging-elasticsearch:{{ openshift_logging_elasticsearch_image_version }}"
           imagePullPolicy: IfNotPresent
           resources:
+{% if limits is defined %}
             limits:
-{% if es_cpu_limit is defined and es_cpu_limit is not none and es_cpu_limit != '' %}
-              cpu: "{{es_cpu_limit}}"
+{% for key, value in limits.iteritems() %}
+              {{key}}: "{{value}}"
+{% endfor %}
 {% endif %}
-              memory: "{{es_memory_limit}}"
+{% if requests is defined %}
             requests:
-              cpu: "{{es_cpu_request}}"
-              memory: "{{es_memory_limit}}"
+{% for key, value in requests.iteritems() %}
+              {{key}}: "{{value}}"
+{% endfor %}
+{% endif %}
 {% if es_container_security_context %}
           securityContext: {{ es_container_security_context | to_yaml }}
+{% endif %}
+          livenessProbe:
+            tcpSocket:
+              port: 9300
+            initialDelaySeconds: 480
+            periodSeconds: 5
+          readinessProbe:
+{% if es_role == "master" %}
+            tcpSocket:
+              port: 9300
+{% else %}
+            exec:
+              command:
+              - "/usr/share/java/elasticsearch/probe/readiness.sh"
+              initialDelaySeconds: 10
+              timeoutSeconds: 30
+              periodSeconds: 5
 {% endif %}
           ports:
             -
@@ -85,29 +121,26 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             -
-              name: "KUBERNETES_TRUST_CERT"
-              value: "true"
+              name: "NODE_NAME"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             -
               name: "SERVICE_DNS"
-              value: "logging-{{es_cluster_name}}-cluster"
+              value: "{{es_cluster_name}}-cluster"
             -
               name: "CLUSTER_NAME"
-              value: "logging-{{es_cluster_name}}"
+              value: "{{es_cluster_name}}"
             -
               name: "INSTANCE_RAM"
-              value: "{{openshift_logging_elasticsearch_memory_limit}}"
+{% if limits is defined and limits.memory is defined %}
+              value: "{{ limits.memory }}"
+{% else %}
+              value: "512m"
+{% endif %}
             -
               name: "HEAP_DUMP_LOCATION"
               value: "/elasticsearch/persistent/heapdump.hprof"
-            -
-              name: "NODE_QUORUM"
-              value: "{{es_node_quorum | int}}"
-            -
-              name: "RECOVER_EXPECTED_NODES"
-              value: "{{es_recover_expected_nodes}}"
-            -
-              name: "RECOVER_AFTER_TIME"
-              value: "{{openshift_logging_elasticsearch_recover_after_time}}"
             -
               name: "READINESS_PROBE_TIMEOUT"
               value: "30"
@@ -115,16 +148,14 @@ spec:
               name: "POD_LABEL"
               value: "component={{component}}"
             -
-              name: "IS_MASTER"
-              value: "{% if deploy_type in ['data-master', 'master'] %}true{% else %}false{% endif %}"
-
+              name: IS_MASTER
+              value: "{{ node_master }}"
             -
-              name: "HAS_DATA"
-              value: "{% if deploy_type in ['data-master', 'data-client'] %}true{% else %}false{% endif %}"
+              name: HAS_DATA
+              value: "{{ node_data }}"
             -
               name: "PROMETHEUS_USER"
               value: "{{openshift_logging_elasticsearch_prometheus_sa}}"
-
           volumeMounts:
             - name: elasticsearch
               mountPath: /etc/elasticsearch/secret
@@ -132,8 +163,15 @@ spec:
             - name: elasticsearch-config
               mountPath: /usr/share/java/elasticsearch/config
               readOnly: true
+{% if storage_type == 'hostmount' %}
+{% for item in hostmount_path %}
+            - name: elasticsearch-storage-{{ loop.index0 }}
+              mountPath: /elasticsearch/persistent/{{ loop.index0 }}
+{% endfor %}
+{% else %}
             - name: elasticsearch-storage
               mountPath: /elasticsearch/persistent
+{% endif %}
           readinessProbe:
             exec:
               command:
@@ -183,17 +221,21 @@ spec:
             secretName: prometheus-tls
         - name: elasticsearch
           secret:
-            secretName: logging-elasticsearch
+            secretName: {{ es_cluster_name }}-certs
         - name: elasticsearch-config
           configMap:
-            name: logging-elasticsearch
+            name: {{ es_configmap }}
+{% if storage_type == 'pvc' %}
         - name: elasticsearch-storage
-{% if openshift_logging_elasticsearch_storage_type == 'pvc' %}
           persistentVolumeClaim:
             claimName: {{ openshift_logging_elasticsearch_pvc_name }}
-{% elif openshift_logging_elasticsearch_storage_type == 'hostmount' %}
+{% elif storage_type == 'hostmount' %}
+{% for item in hostmount_path %}
+        - name: elasticsearch-storage-{{ loop.index0 }}
           hostPath:
-            path: {{ openshift_logging_elasticsearch_hostmount_path }}
+            path: {{ item }}
+{% endfor %}
 {% else %}
+        - name: elasticsearch-storage
           emptydir: {}
 {% endif %}
