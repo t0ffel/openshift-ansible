@@ -1,0 +1,190 @@
+---
+- fail:
+    msg: "Invalid node role '{{ es_role }}' provide, one of {{ __allowed_es_types }} is allowed"
+  when: not es_role in __allowed_es_types
+
+- name: Client nodes must have http service enabled
+  set_fact:
+    es_http_service: "1"
+  when: es_role in ["clientdata", "clientdatamaster", "client"]
+
+- set_fact:
+    es_http_service: "0"
+  when: es_role in ["master", "data"]
+
+- name: Define whether this is a master node
+  set_fact:
+    node_master: "0"
+  when: es_role in ["client", "data", "clientdata"]
+
+- set_fact:
+    node_master: "1"
+  when: es_role in ["master", "clientdatamaster"]
+
+- name: Define whether this is a data node
+  set_fact:
+    node_data: "1"
+  when: es_role in ["data", "clientdata", "clientdatamaster"]
+
+- set_fact:
+    node_data: "0"
+  when: es_role in ["client", "master"]
+
+- debug:
+    var: es_http_service
+
+- debug:
+    var: node_master
+
+# allow passing in a tempdir
+- name: Create temp directory for doing work in for role {{ es_role }}
+  command: mktemp -d /tmp/openshift-logging-ansible-XXXXXX
+  register: mktemp
+  changed_when: False
+
+- name: set temp dir
+  set_fact:
+    tempdir: "{{ mktemp.stdout }}"
+
+# This may not be necessary in this role
+- name: Create templates subdirectory
+  file:
+    state: directory
+    path: "{{ tempdir }}/templates"
+    mode: 0755
+  changed_when: False
+
+# we want to make sure we have all the necessary components here
+
+- name: Creating ES storage template
+  template:
+    src: pvc.j2
+    dest: "{{ tempdir }}/templates/logging-es-pvc.yml"
+  vars:
+    obj_name: "{{ openshift_logging_elasticsearch_pvc_name }}"
+    size: "{{ openshift_logging_elasticsearch_pvc_size }}"
+    access_modes: "{{ openshift_logging_elasticsearch_pvc_access_modes | list }}"
+    pv_selector: "{{ openshift_logging_elasticsearch_pvc_pv_selector }}"
+  when:
+  - node_storage_type == "pvc"
+  - not openshift_logging_elasticsearch_pvc_dynamic
+
+- name: Check to see if PVC already exists
+  oc_obj:
+    state: list
+    kind: pvc
+    name: "{{ openshift_logging_elasticsearch_pvc_name }}"
+    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+  register: logging_elasticsearch_pvc
+  when:
+  - node_storage_type == "pvc"
+
+# logging_elasticsearch_pvc.results.results | length > 0 returns a false positive
+# so we check for the presence of 'stderr' to determine if the obj exists or not
+# the RC for existing and not existing is both 0
+- when:
+  - node_storage_type == "pvc"
+  - logging_elasticsearch_pvc.results.stderr is defined
+  block:
+  # storageclasses are used by default but if static then disable
+  # storageclasses with the storageClassName set to "" in pvc.j2
+  - name: Creating ES storage template - static
+    template:
+      src: "{{ __base_file_dir }}/pvc.j2"
+      dest: "{{ tempdir }}/templates/logging-es-pvc.yml"
+    vars:
+      obj_name: "{{ openshift_logging_elasticsearch_pvc_name }}"
+      size: "{{ (openshift_logging_elasticsearch_pvc_size | trim | length == 0) | ternary('10Gi', openshift_logging_elasticsearch_pvc_size) }}"
+      access_modes: "{{ openshift_logging_elasticsearch_pvc_access_modes | list }}"
+      pv_selector: "{{ openshift_logging_elasticsearch_pvc_pv_selector }}"
+      storage_class_name: "{{ openshift_logging_elasticsearch_pvc_storage_class_name | default('', true) }}"
+    when:
+    - not openshift_logging_elasticsearch_pvc_dynamic | bool
+
+    # Storageclasses are used by default if configured
+  - name: Creating ES storage template - dynamic
+    template:
+      src: "{{ __base_file_dir }}/pvc.j2"
+      dest: "{{ tempdir }}/templates/logging-es-pvc.yml"
+    vars:
+      obj_name: "{{ openshift_logging_elasticsearch_pvc_name }}"
+      size: "{{ (openshift_logging_elasticsearch_pvc_size | trim | length == 0) | ternary('10Gi', openshift_logging_elasticsearch_pvc_size) }}"
+      access_modes: "{{ openshift_logging_elasticsearch_pvc_access_modes | list }}"
+      pv_selector: "{{ openshift_logging_elasticsearch_pvc_pv_selector }}"
+    when:
+    - openshift_logging_elasticsearch_pvc_dynamic | bool
+
+  - name: Set ES data node storage
+    oc_obj:
+      state: present
+      kind: pvc
+      name: "{{ openshift_logging_elasticsearch_pvc_name }}"
+      namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+      files:
+      - "{{ tempdir }}/templates/logging-es-pvc.yml"
+      delete_after: true
+
+- name: Set deployment name
+  set_fact:
+    es_deploy_name: "{{ openshift_logging_elasticsearch_clustername }}-{{ es_role }}-{{ es_node_id }}"
+
+# Setup all configmaps and secrets
+- include: "{{ role_path }}/tasks/node_configuration.yaml"
+  vars:
+    node_configmap: "{{ es_deploy_name }}"
+    storage_type: "{{ node_storage_type }}"
+
+# DC
+- name: Set ES dc templates for role {{ es_role }}
+  template:
+    src: "{{ __base_file_dir }}/es.j2"
+    dest: "{{ tempdir }}/templates/logging-es-dc.yml"
+  vars:
+    es_configmap: "{{ openshift_logging_elasticsearch_clustername }}"
+    es_cluster_name: "{{ openshift_logging_elasticsearch_clustername }}"
+    # TODO: add ability to add arbitrary label to ES deployments,
+    # remove mandatory logging_component
+    # TODO: component below needs to be changed
+    component: "{{ openshift_logging_elasticsearch_clustername }}"
+    es_component: "{{ es_component }}"
+    deploy_name: "{{ es_deploy_name }}"
+    storage_type: "{{ node_storage_type | default(emptydir) }}"
+    image: "{{ openshift_logging_elasticsearch_image_prefix }}logging-elasticsearch:{{ openshift_logging_elasticsearch_image_version }}"
+    proxy_image: "{{ openshift_logging_elasticsearch_proxy_image_prefix }}oauth-proxy:{{ openshift_logging_elasticsearch_proxy_image_version }}"
+    es_cpu_limit: "{{ openshift_logging_elasticsearch_cpu_limit | default('') }}"
+    es_cpu_request: "{{ openshift_logging_elasticsearch_cpu_request | min_cpu(openshift_logging_elasticsearch_cpu_limit | default(none)) }}"
+    es_memory_limit: "{{ openshift_logging_elasticsearch_memory_limit }}"
+    es_node_selector: "{{ openshift_logging_elasticsearch_nodeselector | default({}) }}"
+    es_storage_groups: "{{ openshift_logging_elasticsearch_storage_group | default([]) }}"
+    es_container_security_context: "{{ _es_containers.elasticsearch.securityContext if _es_containers is defined and 'elasticsearch' in _es_containers and 'securityContext' in _es_containers.elasticsearch else None }}"
+    deploy_type: "{{ openshift_logging_elasticsearch_deployment_type }}"
+    es_replicas: 1
+    basic_auth_passwd: "{{ ( _logging_metrics_proxy_passwd['content'] | b64decode | from_yaml )[openshift_logging_elasticsearch_prometheus_sa]['passwd'] | b64decode }}"
+    es_number_of_shards: "{{ openshift_logging_es_number_of_shards | default(1) }}"
+    es_number_of_replicas: "{{ openshift_logging_es_number_of_replicas| default(0) }}"
+  changed_when: false
+
+- name: Set ES dc for role {{ es_role }}
+  oc_obj:
+    state: present
+    name: "{{ es_deploy_name }}"
+    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+    kind: DeploymentConfig
+    files:
+    - "{{ tempdir }}/templates/logging-es-dc.yml"
+    delete_after: true
+  register: es_dc_creation
+  notify: "restart elasticsearch"
+
+- set_fact:
+    _restart_logging_components: "{{ _restart_logging_components | default([]) + [es_component] | unique }}"
+    _restart_logging_nodes: "{{ _restart_logging_nodes | default([]) + [es_deploy_name] | unique }}"
+  when: es_dc_creation.changed | bool
+
+## Placeholder for migration when necessary ##
+
+- name: Delete temp directory
+  file:
+    name: "{{ tempdir }}"
+    state: absent
+  changed_when: False
