@@ -53,42 +53,8 @@
 - include_role:
     name: openshift_logging_elasticsearch
   vars:
-    openshift_elasticsearch_image: "t0ffel/elasticsearch-sg"
     openshift_logging_elasticsearch_namespace: "{{ openshift_logging_namespace }}"
     generated_certs_dir: "{{ openshift.common.config_base }}/logging"
-  when: not elasticsearch5_deploy |bool
-
-
-- include_role:
-    name: openshift_logging_elasticsearch
-  vars:
-    openshift_elasticsearch_image: "t0ffel/elasticsearch-sg"
-    openshift_elasticsearch_namespace: "{{ openshift_logging_namespace }}"
-    openshift_elasticsearch_clustername: "logging-es" 
-    certs_dir: "{{ openshift.common.config_base }}/logging"
-    kubeconfig: "{{ kubeconfig| default(/etc/origin/master/openshift-master.kubeconfig) }}"
-    openshift_elasticsearch_secure: true
-    es_node_topology:
-      masters:
-        replicas: 1
-        limits:
-          cpu: 200m
-        requests:
-          memory: 512Mi
-          cpu: 100m
-      clientdata:
-      -
-        node_storage_type: emptydir
-        hostmount_path:
-        - /mnt/data1
-        - /mnt/data2
-        limits:
-          memory: 512Mi
-          cpu: 200m
-        requests:
-          cpu: 100m
-          memory: 256Mi
-  when: elasticsearch5_deploy |bool
 
 ## Kibana
 - include_role:
