@@ -1,3 +1,12 @@
+---
+- include: determine_version.yaml
+
+# service account
+- include: "{{ role_path }}/tasks/service_accounts.yaml"
+  vars:
+    openshift_elasticsearch_namespace: '{{ openshift_logging_elasticsearch_namespace }}'
+    openshift_elasticsearch_integration: true
+
 - include: elasticsearch2_cluster.yaml
   vars:
     openshift_elasticsearch_image: "t0ffel/elasticsearch-sg"
