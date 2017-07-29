@@ -48,7 +48,8 @@
     kubeconfig: '{{ kubeconfig }}'
 
 # Set variables common for all DCs
-- set_fact:
+- name: Setting legacy logging_component for the label
+  set_fact:
     logging_component: "{{ openshift_logging_elasticsearch_clustername }}"
 
 # Deploy masters
@@ -83,7 +84,7 @@
     node_storage_type: "{{ item.1.node_storage_type | default(emptydir) }}"
     openshift_logging_elasticsearch_pvc_name: "{{ openshift_logging_es_pvc_prefix }}-{{ item.0 | int }}"
     hostmount_path: "{{ item.1.hostmount_path |default ({})}}"
-    image: "{{ openshift_logging_elasticsearch_image }}:{{ openshift_logging_elasticsearch_image_version }}"
+    image: "{{ openshift_logging_elasticsearch_image_prefix }}{{ openshift_logging_elasticsearch_image_name }}:{{ openshift_logging_elasticsearch_image_version }}"
   with_indexed_items: "{{ openshift_logging_elasticsearch_node_topology.clientdata }}"
 
 - debug: var=openshift_logging_elasticsearch_facts

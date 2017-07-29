@@ -1,7 +1,7 @@
 ---
 - fail:
     msg: "Invalid node role '{{ es_role }}' provide, one of {{ __allowed_es5_types }} is allowed"
-  when: not es_role in __allowed_es_types
+  when: not es_role in __allowed_es5_types
 
 - include: determine_version.yaml
 
@@ -11,7 +11,8 @@
   register: mktemp
   changed_when: False
 
-- set_fact:
+- name: set temp dir
+  set_fact:
     tempdir: "{{ mktemp.stdout }}"
 
 # This may not be necessary in this role
@@ -65,7 +66,8 @@
   when:
   - node_storage_type == "pvc"
 
-- set_fact:
+- name: Set deployment name
+  set_fact:
     es_deploy_name: "{{ openshift_logging_elasticsearch_deployment_name }}"
 
 # Setup all configmaps and secrets
@@ -109,6 +111,9 @@
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
     replicas: "{{ replicas | default(1) }}"
     kubeconfig: '{{ kubeconfig }}'
+
+- name: Update sysctl
+  include: update_node_sysctl.yaml
 
 ## Placeholder for migration when necessary ##
 

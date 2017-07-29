@@ -4,7 +4,7 @@
 - name: Set proper image facts
   set_fact:
     openshift_logging_elasticsearch_image_prefix: '{{ openshift_logging_elasticsearch5_image_prefix }}'
-    openshift_logging_elasticsearch_image_version: '{{ openshift_logging_elasticsearch5_image_prefix }}'
+    openshift_logging_elasticsearch_image_version: '{{ openshift_logging_elasticsearch5_image_version }}'
     openshift_logging_elasticsearch_image_pull_secret: '{{ openshift_logging_elasticsearch5_image_pull_secret }}'
     openshift_logging_elasticsearch_image_name: '{{ openshift_logging_elasticsearch5_image_name }}'
   when: elasticsearch5_deploy | bool

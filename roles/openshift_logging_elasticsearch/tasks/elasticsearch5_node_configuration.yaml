@@ -13,7 +13,7 @@
   changed_when: no
 
 - template:
-    src: elasticsearch.yml.j2
+    src: elasticsearch5.yml.j2
     dest: "{{ tempdir }}/elasticsearch.yml"
   vars:
     allow_cluster_reader: "{{ openshift_logging_elasticsearch_ops_allow_cluster_reader | lower | default('false') }}"
