@@ -4,7 +4,7 @@ metadata:
   name: "{{deploy_name}}"
   labels:
     provider: openshift
-    component: "{{component}}"
+    component: "{{es_component}}"
     deployment: "{{deploy_name}}"
     cluster-name: "{{ es_cluster_name }}"
     logging-infra: "{{logging_component}}"
@@ -14,7 +14,7 @@ spec:
   replicas: {{replicas|default(1)}}
   selector:
     provider: openshift
-    component: "{{component}}"
+    component: "{{es_component}}"
     deployment: "{{deploy_name}}"
     logging-infra: "{{logging_component}}"
   strategy:
@@ -25,7 +25,7 @@ spec:
       labels:
         logging-infra: "{{logging_component}}"
         provider: openshift
-        component: "{{component}}"
+        component: "{{es_component}}"
         deployment: "{{deploy_name}}"
         cluster-name: "{{ es_cluster_name }}"
         es-node-role: "{{ es_role }}"

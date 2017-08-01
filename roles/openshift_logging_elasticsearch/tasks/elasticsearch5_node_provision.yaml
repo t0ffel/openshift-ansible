@@ -15,6 +15,10 @@
   set_fact:
     tempdir: "{{ mktemp.stdout }}"
 
+- name: set legacy component
+  set_fact:
+    es_component: "{{ openshift_logging_elasticsearch_clustername  | regex_replace('^logging-','') }}"
+
 # This may not be necessary in this role
 - name: Create templates subdirectory
   file:
@@ -88,6 +92,7 @@
     # remove mandatory logging_component
     # TODO: component below needs to be changed
     component: "{{ openshift_logging_elasticsearch_clustername }}"
+    es_component: "{{ es_component }}"
     deploy_name: "{{ es_deploy_name }}"
     storage_type: "{{ node_storage_type | default(emptydir) }}"
   changed_when: false
