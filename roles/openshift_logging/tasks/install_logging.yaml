@@ -60,6 +60,20 @@
     generated_certs_dir: "{{ openshift.common.config_base }}/logging"
     openshift_logging_elasticsearch_transport_cert_name: "elasticsearch"
     openshift_logging_elasticsearch_api_cert_name: "logging-es"
+    openshift_logging_elasticsearch_node_topology: "{{ openshift_logging_es_node_topology }}"
+    openshift_logging_elasticsearch_node_topology_defined: "{{ openshift_logging_es_node_topology_defined }}"
+# Check if this parameter is still needed
+    openshift_logging_elasticsearch_recover_after_time: "{{ openshift_logging_es_recover_after_time }}"
+# Var-styled definition, they are only used if openshift_logging_elasticsearch_node_topology_defined is false
+    openshift_logging_elasticsearch_cluster_size: "{{ openshift_logging_es_cluster_size }}"
+    openshift_logging_elasticsearch_cpu_limit: "{{ openshift_logging_es_cpu_limit }}"
+    openshift_logging_elasticsearch_memory_limit: "{{ openshift_logging_es_memory_limit }}"
+    openshift_logging_elasticsearch_pv_selector: "{{ openshift_logging_es_pv_selector }}"
+    openshift_logging_elasticsearch_pvc_dynamic: "{{ openshift_logging_es_pvc_dynamic }}"
+    openshift_logging_elasticsearch_pvc_size: "{{ openshift_logging_es_pvc_size }}"
+    openshift_logging_elasticsearch_pvc_prefix: "{{ openshift_logging_es_pvc_prefix }}"
+    openshift_logging_elasticsearch_storage_group: "{{ openshift_logging_es_storage_group }}"
+    openshift_logging_elasticsearch_nodeselector: "{{ openshift_logging_es_nodeselector }}"
 
 - include_role:
     name: openshift_logging_elasticsearch
@@ -71,6 +85,20 @@
     generated_certs_dir: "{{ openshift.common.config_base }}/logging"
     openshift_logging_elasticsearch_transport_cert_name: "elasticsearch"
     openshift_logging_elasticsearch_api_cert_name: "logging-es"
+    openshift_logging_elasticsearch_node_topology: "{{ openshift_logging_es_ops_node_topology }}"
+    openshift_logging_elasticsearch_node_topology_defined: "{{ openshift_logging_es_ops_node_topology_defined }}"
+# Check if this parameter is still needed
+    openshift_logging_elasticsearch_recover_after_time: "{{ openshift_logging_es_ops_recover_after_time }}"
+# Var-styled definition, they are only used if openshift_logging_elasticsearch_node_topology_defined is false
+    openshift_logging_elasticsearch_cluster_size: "{{ openshift_logging_es_ops_cluster_size }}"
+    openshift_logging_elasticsearch_cpu_limit: "{{ openshift_logging_es_ops_cpu_limit }}"
+    openshift_logging_elasticsearch_memory_limit: "{{ openshift_logging_es_ops_memory_limit }}"
+    openshift_logging_elasticsearch_pv_selector: "{{ openshift_logging_es_ops_pv_selector }}"
+    openshift_logging_elasticsearch_pvc_dynamic: "{{ openshift_logging_es_ops_pvc_dynamic }}"
+    openshift_logging_elasticsearch_pvc_size: "{{ openshift_logging_es_ops_pvc_size }}"
+    openshift_logging_elasticsearch_pvc_prefix: "{{ openshift_logging_es_ops_pvc_prefix }}"
+    openshift_logging_elasticsearch_storage_group: "{{ openshift_logging_es_ops_storage_group }}"
+    openshift_logging_elasticsearch_nodeselector: "{{ openshift_logging_es_ops_nodeselector }}"
   when: openshift_logging_use_ops |bool
 
 ## Kibana
