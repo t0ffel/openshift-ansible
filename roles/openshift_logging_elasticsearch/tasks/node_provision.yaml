@@ -122,7 +122,7 @@
     es_component: "{{ es_component }}"
     deploy_name: "{{ es_deploy_name }}"
     storage_type: "{{ node_storage_type | default(emptydir) }}"
-    image: "{{ openshift_logging_elasticsearch_image_prefix }}{{ openshift_logging_elasticsearch_image_name }}:{{ openshift_logging_elasticsearch_image_version }}"
+    image: "{{ openshift_logging_elasticsearch_image_prefix }}logging-elasticsearch:{{ openshift_logging_elasticsearch_image_version }}"
   changed_when: false
 
 - name: Set ES dc for role {{ es_role }}
@@ -134,7 +134,6 @@
     files:
     - "{{ tempdir }}/templates/logging-es-dc.yml"
     delete_after: true
-    kubeconfig: '{{ kubeconfig }}'
 
 # scale up
 - name: Start Elasticsearch for role {{ es_role }}
@@ -143,7 +142,6 @@
     name: "{{ es_deploy_name }}"
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
     replicas: "{{ replicas | default(1) }}"
-    kubeconfig: '{{ kubeconfig }}'
 
 ## Placeholder for migration when necessary ##
 
