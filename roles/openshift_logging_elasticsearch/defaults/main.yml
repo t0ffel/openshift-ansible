@@ -8,7 +8,7 @@ openshift_logging_elasticsearch_namespace: logging
 openshift_logging_elasticsearch_sa_name: aggregated-logging-elasticsearch
 openshift_logging_elasticsearch_nodeselector: "{{ openshift_logging_es_nodeselector | default('') }}"
 openshift_logging_elasticsearch_cpu_limit: 1000m
-openshift_logging_elasticsearch_memory_limit: "{{ openshift_logging_es_memory_limit | default('1Gi') }}"
+openshift_logging_elasticsearch_memory_limit: "{{ openshift_logging_es_memory_limit | default('8Gi') }}"
 openshift_logging_elasticsearch_recover_after_time: "{{ openshift_logging_es_recover_after_time | default('5m') }}"
 openshift_logging_elasticsearch_clusterreader: true
 
@@ -20,10 +20,9 @@ openshift_logging_elasticsearch_node_topology:
   masters:
     replicas: 1
     limits:
-      cpu: 200m
+      cpu: 1000m
     requests:
-      memory: 512Mi
-      cpu: 100m
+      memory: 1Gi
   clientdata:
   -
     node_storage_type: emptydir
@@ -31,16 +30,15 @@ openshift_logging_elasticsearch_node_topology:
     - /mnt/data1
     - /mnt/data2
     limits:
-      memory: 512Mi
-      cpu: 200m
+      memory: 8Gi
+      cpu: 4000m
     requests:
-      cpu: 100m
-      memory: 256Mi
+      memory: 8Gi
     pv_selector:
       label: value
     pvc_size: 10Gi
     pvc_name: pvc1
-    storage_group: 6566
+    storage_group: 65534
 
 # ES deployment name
 openshift_logging_elasticsearch_deployment_name: ""

@@ -30,14 +30,11 @@ RETURN = """
 
 # constants used for various labels and selectors
 # selectors for filtering resources
-MASTER_CPU_LIMIT="200m"
-MASTER_MEM_LIMIT="1024Mi"
-MASTER_CPU_REQUESTS="200m"
-MASTER_MEM_REQUESTS="512Mi"
-CLIENTDATA_CPU_LIMIT="200m"
-CLIENTDATA_MEM_LIMIT="1024Mi"
-CLIENTDATA_CPU_REQUESTS="200m"
-CLIENTDATA_MEM_REQUESTS="512Mi"
+MASTER_CPU_LIMIT="1000m"
+MASTER_MEM_LIMIT="1Gi"
+CLIENTDATA_CPU_LIMIT="4000m"
+CLIENTDATA_MEM_LIMIT="8Gi"
+CLIENTDATA_MEM_REQUESTS="8Gi"
 
 
 class OpenshiftLoggingTopology():
@@ -83,12 +80,10 @@ class OpenshiftLoggingTopology():
         '''builds ES node topology from the variables passed to the module'''
         masters = dict(limits=dict(cpu=MASTER_CPU_LIMIT,
                                    memory=MASTER_MEM_LIMIT),
-                       requests=dict(cpu=MASTER_CPU_REQUESTS,
-                                     memory=MASTER_MEM_REQUESTS))
+                       requests=dict(memory=MASTER_MEM_LIMIT))
         clientdata_nd = dict(limits=dict(cpu=self._cpu_limit,
                                          memory=self._memory_limit),
-                             requests=dict(cpu=CLIENTDATA_CPU_REQUESTS,
-                                           memory=CLIENTDATA_MEM_REQUESTS),
+                             requests=dict(memory=self._memory_limit),
                              pvc_size=self._pvc_size,
                              storage_group=self._storage_group)
         if self._cluster_size <=3:
