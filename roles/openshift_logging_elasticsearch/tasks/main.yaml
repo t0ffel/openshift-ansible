@@ -83,6 +83,7 @@
     openshift_logging_elasticsearch_deployment_name: "{{ openshift_logging_elasticsearch_clustername }}-master"
     generated_certs_dir: "{{ certs_dir }}"
     limits: "{{ openshift_logging_elasticsearch_topology.node_topology.masters.limits }}"
+    requests: "{{ openshift_logging_elasticsearch_topology.node_topology.masters.requests }}"
     es_node_selector: "{{ openshift_logging_elasticsearch_topology.node_topology.masters.nodeSelector | default({}) }}"
     node_storage_type: emptydir
 
@@ -98,6 +99,7 @@
     openshift_logging_elasticsearch_deployment_name: "{{ openshift_logging_elasticsearch_clustername }}-clientdata-{{ item.0 }}"
     generated_certs_dir: "{{ certs_dir }}"
     limits: "{{ item.1.limits }}"
+    requests: "{{ item.1.requests }}"
     es_node_selector: "{{ item.1.nodeSelector | default({}) }}"
     node_storage_type: "{{ item.1.node_storage_type | default(emptydir) }}"
     openshift_logging_elasticsearch_pvc_name: "{{ openshift_logging_es_pvc_prefix }}-{{ item.0 | int }}"
