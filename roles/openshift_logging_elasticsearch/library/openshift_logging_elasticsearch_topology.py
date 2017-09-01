@@ -30,7 +30,7 @@ RETURN = """
 
 # constants used for various labels and selectors
 # selectors for filtering resources
-MASTER_CPU_LIMIT="1000m"
+MASTER_CPU_LIMIT="500m"
 MASTER_MEM_LIMIT="1Gi"
 CLIENTDATA_CPU_LIMIT="4000m"
 CLIENTDATA_MEM_LIMIT="8Gi"
