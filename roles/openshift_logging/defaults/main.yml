@@ -98,9 +98,9 @@ openshift_logging_es_cpu_request: "1"
 openshift_logging_es_log_appenders: ['file']
 openshift_logging_es_memory_limit: "8Gi"
 openshift_logging_es_pv_selector: "{{ openshift_logging_storage_labels | default({}) }}"
-openshift_logging_es_pvc_dynamic: "{{ openshift_logging_elasticsearch_pvc_dynamic | default(False) }}"
-openshift_logging_es_pvc_size: "{{ openshift_logging_elasticsearch_pvc_size | default('') }}"
-openshift_logging_es_pvc_prefix: "{{ openshift_logging_elasticsearch_pvc_prefix | default('logging-es') }}"
+openshift_logging_es_pvc_dynamic: "{{ openshift_logging_legacy_es_pvc_dynamic | default(False) }}"
+openshift_logging_es_pvc_size: "{{ openshift_logging_legacy_es_pvc_size | default('') }}"
+openshift_logging_es_pvc_prefix: "{{ openshift_logging_legacy_es_pvc_prefix | default('logging-es') }}"
 openshift_logging_es_recover_after_time: 5m
 openshift_logging_es_storage_group: "65534"
 openshift_logging_es_nodeselector: {}
@@ -136,9 +136,9 @@ openshift_logging_es_ops_cpu_limit: null
 openshift_logging_es_ops_memory_limit: 8Gi
 openshift_logging_es_ops_cpu_request: "1"
 openshift_logging_es_ops_pv_selector: "{{ openshift_loggingops_storage_labels | default({}) }}"
-openshift_logging_es_ops_pvc_dynamic: "{{ openshift_logging_elasticsearch_ops_pvc_dynamic | default(False) }}"
-openshift_logging_es_ops_pvc_size: "{{ openshift_logging_elasticsearch_ops_pvc_size | default('') }}"
-openshift_logging_es_ops_pvc_prefix: "{{ openshift_logging_elasticsearch_ops_pvc_prefix | default('logging-es-ops') }}"
+openshift_logging_es_ops_pvc_dynamic: "{{ openshift_logging_legacy_es_ops_pvc_dynamic | default(False) }}"
+openshift_logging_es_ops_pvc_size: "{{ openshift_logging_legacy_es_ops_pvc_size | default('') }}"
+openshift_logging_es_ops_pvc_prefix: "{{ openshift_logging_legacy_es_ops_pvc_prefix | default('logging-es-ops') }}"
 openshift_logging_es_ops_recover_after_time: 5m
 openshift_logging_es_ops_storage_group: "65534"
 openshift_logging_es_ops_nodeselector: {}
