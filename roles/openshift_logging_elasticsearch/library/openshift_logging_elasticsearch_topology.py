@@ -206,7 +206,7 @@ def main():
             elasticsearch_cpu_limit={"required": False, "type": "str"},
             elasticsearch_memory_limit={"required": False, "type": "str"},
             elasticsearch_pv_selector={"required": False, "type": "dict"},
-            elasticsearch_pvc_dynamic={"required": False, "type": "bool"},
+            elasticsearch_pvc_dynamic={"required": False, "type": "str"},
             elasticsearch_pvc_size={"required": False, "type": "str"},
             elasticsearch_pvc_prefix={"required": False, "type": "str"},
             elasticsearch_storage_group={"required": False, "type": "int"},
