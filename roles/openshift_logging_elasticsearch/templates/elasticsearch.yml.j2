@@ -25,18 +25,19 @@ cloud:
 discovery:
   zen.hosts_provider: kubernetes
   zen.ping.unicast.hosts: ${SERVICE_DNS}
-  zen.minimum_master_nodes: ${MASTERS_QUORUM}
+  zen.minimum_master_nodes: {{ es_masters_quorum }}
 
 plugin.mandatory: discovery-kubernetes
 
 gateway:
-  expected_master_nodes: ${MASTERS_QUORUM}
+#  expected_master_nodes: {{ es_masters_quorum }}
   # ^^^ should be full number of master nodes.
-  recover_after_nodes: ${RECOVER_AFTER_NODES}
+  recover_after_nodes: {{ es_recover_after_nodes }}
   ## ^^ node quorum
-  expected_nodes: ${RECOVER_EXPECTED_NODES}
-  expected_data_nodes: ${RECOVER_EXPECTED_DATA_NODES}
-  recover_after_time: ${RECOVER_AFTER_TIME}
+  expected_nodes: {{ es_recover_expected_nodes }}
+# TODO: fix all the parameters
+#  expected_data_nodes: {{ es_recover_expected_data_nodes }}
+  recover_after_time: {{ openshift_elasticsearch_recover_after_time }}
 # add recover_after_master - masters quorum.
 
 #io.fabric8.elasticsearch.authentication.users: ["system.logging.kibana", "system.logging.fluentd", "system.logging.curator", "system.admin"]
@@ -68,14 +69,14 @@ path:
 searchguard:
   authcz.admin_dn:
   - CN=system.admin,OU=OpenShift,O=Logging
-#  config_index_name: ".searchguard.${HOSTNAME}"
+  config_index_name: ".searchguard.${NODE_NAME}"
   ssl:
     transport:
       enabled: true
       enforce_hostname_verification: false
       keystore_type: JKS
       keystore_filepath: /etc/elasticsearch/secret/searchguard.key
-      keystore_alias: {{ openshift_elasticsearch_clustername }}-cluster
+      keystore_alias: {{ openshift_logging_elasticsearch_clustername }}-cluster
       keystore_password: kspass
       truststore_type: JKS
       truststore_filepath: /etc/elasticsearch/secret/searchguard.truststore
@@ -84,7 +85,7 @@ searchguard:
       enabled: true
       keystore_type: JKS
       keystore_filepath: /etc/elasticsearch/secret/key
-      keystore_alias: {{ openshift_elasticsearch_clustername }}
+      keystore_alias: {{ openshift_logging_elasticsearch_clustername }}
       keystore_password: kspass
       clientauth_mode: OPTIONAL
       truststore_type: JKS
