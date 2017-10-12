@@ -76,7 +76,6 @@ searchguard:
       enforce_hostname_verification: false
       keystore_type: JKS
       keystore_filepath: /etc/elasticsearch/secret/searchguard.key
-      keystore_alias: {{ openshift_logging_elasticsearch_clustername }}-cluster
       keystore_password: kspass
       truststore_type: JKS
       truststore_filepath: /etc/elasticsearch/secret/searchguard.truststore
@@ -85,7 +84,6 @@ searchguard:
       enabled: true
       keystore_type: JKS
       keystore_filepath: /etc/elasticsearch/secret/key
-      keystore_alias: {{ openshift_logging_elasticsearch_clustername }}
       keystore_password: kspass
       clientauth_mode: OPTIONAL
       truststore_type: JKS
