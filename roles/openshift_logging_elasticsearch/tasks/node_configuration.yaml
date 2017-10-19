@@ -5,11 +5,15 @@
 
 # configmap
 - template:
-    src: elasticsearch-logging.yml.j2
-    dest: "{{ tempdir }}/elasticsearch-logging.yml"
-  vars:
-    root_logger: "{{openshift_logging_es_log_appenders | join(', ')}}"
-  when: es_logging_contents is undefined
+    src: jvm.options.j2
+    dest: "{{ tempdir }}/jvm.options"
+  when: es_jvm_options_contents is undefined
+  changed_when: no
+
+- template:
+    src: log4j2.properties.j2
+    dest: "{{ tempdir }}/log4j2.properties"
+  when: es_log4j2_properties_contents is undefined
   changed_when: no
 
 - template:
@@ -24,9 +28,15 @@
   changed_when: no
 
 - copy:
-    content: "{{ es_logging_contents }}"
-    dest: "{{ tempdir }}/elasticsearch-logging.yml"
-  when: es_logging_contents is defined
+    content: "{{ es_jvm_options_contents }}"
+    dest: "{{ tempdir }}/jvm.options"
+  when: es_jvm_options_contents is defined
+  changed_when: no
+
+- copy:
+    content: "{{ es_log4j2_properties_contents }}"
+    dest: "{{ tempdir }}/log4j2.properties"
+  when: es_log4j2_properties_contents is defined
   changed_when: no
 
 - copy:
@@ -42,4 +52,6 @@
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
     from_file:
       elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
-      logging.yml: "{{ tempdir }}/elasticsearch-logging.yml"
+      jvm.options: "{{ tempdir }}/jvm.options"
+      log4j2.properties: "{{ tempdir  }}/log4j2.properties"
+
