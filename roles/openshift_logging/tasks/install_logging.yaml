@@ -85,6 +85,7 @@
     openshift_logging_elasticsearch_hostname: "{{ openshift_logging_es_hostname }}"
     openshift_logging_elasticsearch_edge_term_policy: "{{ openshift_logging_es_edge_term_policy | default('') }}"
     openshift_logging_elasticsearch_allow_external: "{{ openshift_logging_es_allow_external }}"
+    openshift_logging_elasticsearch_log_appenders: '{{ openshift_logging_es_log_appenders }}'
 
 # Elasticsearch Ops cluster
 - include_role:
@@ -122,6 +123,7 @@
     openshift_logging_elasticsearch_hostname: "{{ openshift_logging_es_ops_hostname }}"
     openshift_logging_elasticsearch_edge_term_policy: "{{ openshift_logging_es_ops_edge_term_policy | default('') }}"
     openshift_logging_elasticsearch_allow_external: "{{ openshift_logging_es_ops_allow_external }}"
+    openshift_logging_elasticsearch_log_appenders: '{{ openshift_logging_es_log_appenders }}'
   when: openshift_logging_use_ops |bool
 
 ## Kibana

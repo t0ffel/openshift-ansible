@@ -1,19 +1,22 @@
 ---
 
 ### Common settings
-openshift_logging_elasticsearch_image_prefix: "{{ openshift_logging_image_prefix | default(__openshift_logging_image_prefix) }}"
+openshift_logging_elasticsearch_image_prefix: "{{ openshift_logging_image_prefix | default('docker.io/openshift/origin-') }}"
 openshift_logging_elasticsearch_image_version: "{{ openshift_logging_image_version | default('latest') }}"
 openshift_logging_elasticsearch_image_pull_secret: "{{ openshift_hosted_logging_image_pull_secret | default('') }}"
 openshift_logging_elasticsearch_namespace: logging
 openshift_logging_elasticsearch_sa_name: aggregated-logging-elasticsearch
-openshift_logging_elasticsearch_nodeselector: "{{ openshift_logging_es_nodeselector | default('') }}"
+openshift_logging_elasticsearch_nodeselector: "{{ openshift_logging_es_nodeselector | default({}) }}"
 openshift_logging_elasticsearch_cpu_limit: "{{ openshift_logging_es_cpu_limit | default('') }}"
 openshift_logging_elasticsearch_cpu_request: "{{ openshift_logging_es_cpu_request | default('1000m') }}"
 openshift_logging_elasticsearch_memory_limit: "{{ openshift_logging_es_memory_limit | default('1Gi') }}"
 openshift_logging_elasticsearch_recover_after_time: "{{ openshift_logging_es_recover_after_time | default('5m') }}"
 openshift_logging_elasticsearch_clusterreader: true
-
+openshift_logging_elasticsearch_cluster_size: 1
 openshift_logging_elasticsearch_replica_count: 1
+openshift_logging_elasticsearch_pvc_prefix: logging-es
+openshift_logging_elasticsearch_pv_selector: {}
+kubeconfig: /home/centos/.kube/config
 
 # ES deployment type
 openshift_logging_elasticsearch_deployment_type: "data-master"
@@ -83,6 +86,7 @@ openshift_logging_elasticsearch_ops_deployment: false
 
 openshift_logging_elasticsearch_ops_allow_cluster_reader: false
 
+openshift_logging_elasticsearch_allow_external: false
 # following can be uncommented to provide values for configmaps -- take care when providing file contents as it may cause your cluster to not operate correctly
 #es_logging_contents:
 #es_config_contents:

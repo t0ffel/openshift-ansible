@@ -209,7 +209,7 @@ def main():
             elasticsearch_pvc_dynamic={"required": False, "type": "str"},
             elasticsearch_pvc_size={"required": False, "type": "str"},
             elasticsearch_pvc_prefix={"required": False, "type": "str"},
-            elasticsearch_storage_group={"required": False, "type": "int"},
+            elasticsearch_storage_group={"required": False, "type": "list"},
             elasticsearch_nodeselector={"required": False, "type": "dict"},
             elasticsearch_storage_type={"required": False, "type": "str"}
         ),

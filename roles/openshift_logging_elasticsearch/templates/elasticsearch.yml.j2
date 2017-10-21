@@ -30,7 +30,7 @@ cloud:
 discovery:
   type: kubernetes
   zen.ping.multicast.enabled: false
-  zen.minimum_master_nodes: {{es_masters_quorum | int}}
+  zen.minimum_master_nodes: {{ es_masters_quorum | int }}
 
 gateway:
   recover_after_nodes: {{ es_recover_after_nodes }}
