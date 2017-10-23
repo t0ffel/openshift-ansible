@@ -59,59 +59,11 @@
       - "{{ openshift_logging_elasticsearch_log_appenders | length > 0 }}"
     msg: "The openshift_logging_elasticsearch_log_appenders '{{ openshift_logging_elasticsearch_log_appenders }}' has an unrecognized option and only supports the following as a list: {{ __elasticsearch_log_appenders | join(', ') }}"
 
-<<<<<<< HEAD
-- template:
-    src: elasticsearch-logging.yml.j2
-    dest: "{{ tempdir }}/elasticsearch-logging.yml"
-  vars:
-    root_logger: "{{openshift_logging_es_log_appenders | join(', ')}}"
-  when: es_logging_contents is undefined
-  changed_when: no
-
-- set_fact:
-    __es_num_of_shards: "{{ _es_configmap | default({}) | walk('index.number_of_shards', '1') }}"
-    __es_num_of_replicas: "{{ _es_configmap | default({}) | walk('index.number_of_replicas', '0') }}"
-
-- template:
-    src: elasticsearch.yml.j2
-    dest: "{{ tempdir }}/elasticsearch.yml"
-  vars:
-    allow_cluster_reader: "{{ openshift_logging_elasticsearch_ops_allow_cluster_reader | lower | default('false') }}"
-    es_number_of_shards: "{{ openshift_logging_es_number_of_shards | default(None) or __es_num_of_shards }}"
-    es_number_of_replicas: "{{ openshift_logging_es_number_of_replicas | default(None) or __es_num_of_replicas }}"
-    es_kibana_index_mode: "{{ openshift_logging_elasticsearch_kibana_index_mode | default('unique') }}"
-
-  when: es_config_contents is undefined
-  changed_when: no
-
-- copy:
-    content: "{{ es_logging_contents }}"
-    dest: "{{ tempdir }}/elasticsearch-logging.yml"
-  when: es_logging_contents is defined
-  changed_when: no
-
-- copy:
-    content: "{{ es_config_contents }}"
-    dest: "{{ tempdir }}/elasticsearch.yml"
-  when: es_config_contents is defined
-  changed_when: no
-
-- name: Set ES configmap
-  oc_configmap:
-    state: present
-    name: "{{ elasticsearch_name }}"
-    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
-    from_file:
-      elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
-      logging.yml: "{{ tempdir }}/elasticsearch-logging.yml"
-
-=======
 # Set variables common for all DCs
 - name: Setting legacy logging_component for the label
   set_fact:
     logging_component: "{{ openshift_logging_elasticsearch_clustername }}"
     es_component: "{{ openshift_logging_elasticsearch_clustername  | regex_replace('^logging-','') }}"
->>>>>>> Moved Elasticsearch 2.x deployment entirely into openshift_logging_elasticsearch role.
 
 # Set secrets for Elasticsearch
 - name: Set ES secret
