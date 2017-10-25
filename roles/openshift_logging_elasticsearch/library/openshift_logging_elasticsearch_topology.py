@@ -32,8 +32,8 @@ CLIENTDATA_MEM_LIMIT = "8Gi"
 CLIENTDATA_MEM_REQUESTS = "8Gi"
 
 
-class OpenshiftLoggingTopology(object):
-    ''' The class structure for holding the OpenshiftLogging Topologys'''
+class OpenshiftESTopology(object):
+    ''' The class structure for holding the OpenshiftES Topologys'''
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, logger, existing_topology, node_topology,
@@ -88,6 +88,7 @@ class OpenshiftLoggingTopology(object):
             masters['replicas'] = self._cluster_size
         else:
             masters['replicas'] = 3
+        masters['node_role'] = 'master'
 
         if self._nodeselector:
             masters['nodeSelector'] = self._nodeselector
@@ -101,17 +102,16 @@ class OpenshiftLoggingTopology(object):
         if self._pv_selector:
             clientdata_nd['pv_selector'] = self._pv_selector
 
-        clientdata = list()
+        res = list()
         for node in range(self._cluster_size):
             cur_nd = clientdata_nd.copy()
             cur_nd['pvc_name'] = self._pvc_prefix + '-' + str(node)
-            clientdata.append(cur_nd)
+            cur_nd['node_role'] = 'clientdata' if self._cluster_size > 1 else 'clientdatamaster'
+            res.append(cur_nd)
 
         if self._cluster_size > 1:
-            self._node_topology = dict(masters=masters,
-                                       clientdata=clientdata)
-        else:
-            self._node_topology = dict(clientdatamaster=clientdata[0])
+            res.append(masters)
+        self._node_topology = res
 
     @staticmethod
     def reconcile_masters(masters_ex, masters_des):
@@ -120,37 +120,95 @@ class OpenshiftLoggingTopology(object):
         return masters_des
 
     @staticmethod
-    def find_similar_clientdata_node(nodes_ex, cur_node):
-        '''Find similar suitable clientdata node among nodes_ex'''
-        nd_storage = cur_node.get('node_storage_type', 'emptydir')
+    def push_matching_emptydir_node(cur_node, nodes_ex):
+        '''Find similar suitable data node among nodes_ex.
+
+        An existing node matches desired clientdata node iff:
+        - it's role is: data, clientdata, clientdatamaster
+        - node_storage_type is emptydir
+        '''
         for node_idx, _ in enumerate(nodes_ex):
             # Check that node is the same
-            if nodes_ex[node_idx].get('nodeSelector', {}) == cur_node.get('nodeSelector', {}) and\
-               nodes_ex[node_idx].get('node_storage_type') == nd_storage:
-                if (nd_storage == 'emptydir') or \
-                   ((nd_storage == 'hostmount' and
-                     nodes_ex[node_idx].get('hostmount_path') == cur_node.get('hostmount_path'))):
-                    return node_idx
-                elif nd_storage == 'pvc' and\
-                        nodes_ex[node_idx].get('pv_selector') == cur_node.get('pv_selector') and\
-                        nodes_ex[node_idx].get('pvc_size') <= cur_node.get('pvc_size'):
-                    return node_idx
-        raise Exception("Unable to reconcile Elasticsearch node topology. "
-                        "Existing node doesn't fit in the desired topology")
+            if nodes_ex[node_idx]['node_role'] in ['data', 'clientdata', 'clientdatamaster'] and\
+               nodes_ex[node_idx].get('node_storage_type') == 'emptydir':
+                del nodes_ex[node_idx]
+                return
 
-    def reconcile_clientdata(self, clientdata_ex, clientdata_des):
+    @staticmethod
+    def push_matching_pvc_node(cur_node, nodes_ex):
+        '''Find similar suitable data node among nodes_ex.
+
+        An existing node matches desired clientdata node iff:
+        - it's role is: data, clientdata, clientdatamaster
+        - node_storage_type is pvc
+        - pv_selector is same
+        - pvc_size of cur_node > pvc_size of the
+              matching node
+        '''
+        for node_idx, _ in enumerate(nodes_ex):
+            # Check that node is the same
+            if nodes_ex[node_idx]['node_role'] in ['data', 'clientdata', 'clientdatamaster'] and\
+               nodes_ex[node_idx].get('node_storage_type') == 'pvc' and\
+               nodes_ex[node_idx].get('pv_selector') == cur_node.get('pv_selector') and\
+               nodes_ex[node_idx].get('pvc_size') <= cur_node.get('pvc_size'):
+                del nodes_ex[node_idx]
+                return
+
+    @staticmethod
+    def push_matching_hostmount_node(cur_node, nodes_ex):
+        '''Find similar suitable data node among nodes_ex.
+
+        An existing node matches desired clientdata node iff:
+        - it's role is: data, clientdata, clientdatamaster
+        - node_storage_type is hostmount
+        - the paths are the same
+        - nodeSelector is the same
+        '''
+        for node_idx, _ in enumerate(nodes_ex):
+            # Check that node is the same
+            if nodes_ex[node_idx]['node_role'] in ['data', 'clientdata', 'clientdatamaster'] and\
+               nodes_ex[node_idx].get('node_storage_type') == 'hostmount' and\
+               nodes_ex[node_idx].get('nodeSelector') == cur_node.get('nodeSelector') and\
+               nodes_ex[node_idx].get('hostmount_path') == cur_node.get('hostmount_path'):
+                del nodes_ex[node_idx]
+                return
+#        raise Exception("Unable to reconcile Elasticsearch node topology. "
+#                        "Existing node doesn't fit in the desired topology")
+
+    def reconcile_data_nodes(self):
         '''Reconsile desired and existing clientdata node topologies'''
-        if not clientdata_ex:
-            return True
-        if not clientdata_des:
-            raise Exception("No desired clientdata nodes defined for existing clientdata nodes")
-        desired_clientdata = clientdata_des[:]
-        if len(clientdata_ex) > len(clientdata_des):
-            # TODO: Crash and burn, we can't scale down.
-            raise Exception("Scaling down Elasticsearch cluster is not supported")
-        for node in clientdata_ex:
-            ex_nd_id = self.find_similar_clientdata_node(desired_clientdata, node)
-            del desired_clientdata[ex_nd_id]
+
+        existing_pool = self._existing_topology[:]
+        for node in self._node_topology:
+            if node['node_role'] not in ['data', 'clientdata', 'clientdatamaster']:
+                return
+
+            nd_storage = node.get('node_storage_type', 'emptydir')
+
+            if nd_storage == 'emptydir':
+                OpenshiftESTopology.push_matching_emptydir_node(node, existing_pool)
+            elif nd_storage == 'pvc':
+                OpenshiftESTopology.push_matching_pvc_node(node, existing_pool)
+            elif nd_storage == 'hostmount':
+                OpenshiftESTopology.push_matching_hostmount_node(node, existing_pool)
+            else:
+                raise Exception("Unknown node storage type in the desired topology: %s", node)
+
+    def reconcile_master_nodes(self):
+        return
+
+#        if not clientdata_ex:
+#            return True
+#        if not clientdata_des:
+#            raise Exception("No desired clientdata nodes defined for existing clientdata nodes")
+#        desired_clientdata = clientdata_des[:]
+#        if len(clientdata_ex) > len(clientdata_des):
+#            # TODO: Crash and burn, we can't scale down.
+#            raise Exception("Scaling down Elasticsearch cluster is not supported")
+#        for node in clientdata_ex:
+#            ex_nd_id = self.find_similar_clientdata_node(desired_clientdata, node)
+#            del desired_clientdata[ex_nd_id]
+        
 
     @staticmethod
     def reconcile_clientdatamaster(cdm_ex, cdm_des):
@@ -163,21 +221,11 @@ class OpenshiftLoggingTopology(object):
             raise Exception("Multi-node clientdatamaster nodes must be converted to separate roles")
         return cdm_des
 
-    def reconcile_node_topology(self):
+    def reconcile_es_topology(self):
         '''Reconcile Elasticsearch node topology'''
 
-        masters = OpenshiftLoggingTopology.reconcile_masters(
-            self._existing_topology.get('masters', {}),
-            self._node_topology.get('masters', {}))
-        clientdata = self.reconcile_clientdata(
-            self._existing_topology.get('clientdata', []),
-            self._node_topology.get('clientdata', {}))
-        clientdatamaster = OpenshiftLoggingTopology.reconcile_clientdatamaster(
-            self._existing_topology.get('clientdatamaster', []),
-            self._node_topology.get('clientdatamaster', {}))
-        self._reconciled_topology = dict(masters=masters,
-                                         clientdata=clientdata,
-                                         clientdatamaster=clientdatamaster)
+        self.reconcile_data_nodes()
+        self.reconcile_master_nodes()
 
     def build_facts(self):
         ''' Builds the logging facts and returns them '''
@@ -190,7 +238,7 @@ class OpenshiftLoggingTopology(object):
             self.build_topology_from_vars()
         self.add_facts_for("node_topology", self._node_topology)
 
-        self.reconcile_node_topology()
+        self.reconcile_es_topology()
 
         return self.facts
 
@@ -199,7 +247,7 @@ def main():
     ''' The main method '''
     module = AnsibleModule(   # noqa: F405
         argument_spec=dict(
-            existing_topology={"default": "{}", "type": "dict"},
+            existing_topology={"default": "{}", "type": "list"},
             desired_topology={"required": False, "type": "dict", "default": "{}"},
             elasticsearch_clustername={"required": True, "type": "str"},
             elasticsearch_cluster_size={"required": False, "type": "int"},
@@ -216,7 +264,7 @@ def main():
         supports_check_mode=False
     )
     try:
-        cmd = OpenshiftLoggingTopology(module, module.params['existing_topology'],
+        cmd = OpenshiftESTopology(module, module.params['existing_topology'],
                                        module.params['desired_topology'],
                                        module.params['elasticsearch_clustername'],
                                        module.params['elasticsearch_cluster_size'],

@@ -3,6 +3,48 @@
     msg: "Invalid node role '{{ es_role }}' provide, one of {{ __allowed_es_types }} is allowed"
   when: not es_role in __allowed_es_types
 
+- name: Client nodes must have http service enabled
+  set_fact:
+    es_http_service: "true"
+  when:
+  - es_role != "master"
+  - es_role != "data"
+
+- set_fact:
+    es_http_service: "false"
+  when:
+  - es_role != "clientdata"
+  - es_role != "clientdatamaster"
+  - es_role != "client"
+
+- name: Define whether this is a master node
+  set_fact:
+    node_master: "false"
+  when:
+  - es_role != "master"
+  - es_role != "clientdatamaster"
+
+- set_fact:
+    node_master: "true"
+  when:
+  - es_role != "clientdata"
+  - es_role != "data"
+  - es_role != "client"
+
+- name: Define whether this is a data node
+  set_fact:
+    node_data: "true"
+  when:
+  - es_role != "master"
+  - es_role != "client"
+
+- set_fact:
+    node_data: "false"
+  when:
+  - es_role != "clientdata"
+  - es_role != "data"
+  - es_role != "clientdatamaster"
+
 - include: determine_version.yaml
 
 # allow passing in a tempdir
@@ -99,7 +141,7 @@
 
 - name: Set deployment name
   set_fact:
-    es_deploy_name: "{{ openshift_logging_elasticsearch_deployment_name }}"
+    es_deploy_name: "{{ openshift_logging_elasticsearch_clustername }}-{{ es_role }}-{{ es_node_id }}"
 
 # Setup all configmaps and secrets
 - include: "{{ role_path }}/tasks/node_configuration.yaml"

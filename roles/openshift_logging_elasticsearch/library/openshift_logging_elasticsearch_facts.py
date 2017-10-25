@@ -117,11 +117,10 @@ class OpenshiftLoggingFacts(OCBaseCommand):
     def append_facts_for(self, comp, kind, facts=None):
         ''' Append facts for the provided kind to the list'''
         if comp not in self.facts:
-            self.facts[comp] = dict()
-        if kind not in self.facts[comp]:
-            self.facts[comp][kind] = list()
+            self.facts[comp] = list()
         if facts:
-            self.facts[comp][kind].append(facts)
+            facts['node_role'] = kind
+            self.facts[comp].append(facts)
 
     def facts_for_routes(self, namespace):
         ''' Gathers facts for Routes in logging namespace '''
@@ -144,6 +143,39 @@ class OpenshiftLoggingFacts(OCBaseCommand):
             name = pvc["metadata"]["name"]
             self.add_facts_for("pvcs", name, dict())
 
+    def populate_es_container_spec(self, pod_spec):
+        '''Parse important ES container spec details from pod spec'''
+        for cont_spec in pod_spec["containers"]:
+            if cont_spec["name"] != "elasticsearch":
+                continue
+            resources = cont_spec.get("resources", dict())
+            # Detect storage type
+            claim_name = ""
+            hostmount_path = []
+            for volume in pod_spec["volumes"]:
+                if volume["name"].startswith("elasticsearch-storage"):
+                    if "persistentVolumeClaim" in volume:
+                        claim_name = volume["persistentVolumeClaim"]["claimName"]
+                        storage_type = "pvc"
+                    elif "hostPath" in volume:
+                        storage_type = "hostmount"
+                        hostmount_path.append(volume["hostPath"]["path"])
+                    else:
+                        storage_type = "emptydir"
+            facts = dict(
+                serviceAccount=pod_spec["serviceAccount"],
+                limits=resources.get("limits", dict()),
+                requests=resources.get("requests", dict()),
+                storage_group=pod_spec["securityContext"]["supplementalGroups"][0],
+                nodeSelector=pod_spec.get("nodeSelector", dict()),
+                image=cont_spec["image"],
+                claim_name=claim_name,
+                hostmount_path=hostmount_path,
+                node_storage_type=storage_type
+            )
+            return facts
+ 
+
     def facts_for_ex_node_topology(self, namespace, es_role):
         ''' Gathers facts for DeploymentConfigs in logging namespace '''
         if es_role == "component-aio":
@@ -158,44 +190,16 @@ class OpenshiftLoggingFacts(OCBaseCommand):
                                  namespace=namespace,
                                  add_options=["-l", selector])
         if len(dclist["items"]) == 0:
-            self.add_facts_for("existing_node_topology", es_role)
+            self.append_facts_for("existing_node_topology", es_role)
             return
         dcs = dclist["items"]
         for dc_item in dcs:
             spec = dc_item["spec"]["template"]["spec"]
-            cont_spec = spec["containers"][0]
-            resources = cont_spec.get("resources", dict())
-            # Detect storage type
-            claim_name = ""
-            hostmount_path = []
-            for volume in spec["volumes"]:
-                if volume["name"].startswith("elasticsearch-storage"):
-                    if "persistentVolumeClaim" in volume:
-                        claim_name = volume["persistentVolumeClaim"]["claimName"]
-                        storage_type = "pvc"
-                    elif "hostPath" in volume:
-                        storage_type = "hostmount"
-                        hostmount_path.append(volume["hostPath"]["path"])
-                    else:
-                        storage_type = "emptydir"
-            facts = dict(
-                name=dc_item["metadata"]["name"],
-                selector=dc_item["spec"]["selector"],
-                replicas=dc_item["spec"]["replicas"],
-                serviceAccount=spec["serviceAccount"],
-                limits=resources.get("limits", dict()),
-                requests=resources.get("requests", dict()),
-                storage_group=spec["securityContext"]["supplementalGroups"][0],
-                nodeSelector=spec.get("nodeSelector", dict()),
-                image=cont_spec["image"],
-                claim_name=claim_name,
-                hostmount_path=hostmount_path,
-                node_storage_type=storage_type
-            )
-            if es_role == "master":
-                self.add_facts_for("existing_node_topology", es_role, facts)
-            else:
-                self.append_facts_for("existing_node_topology", es_role, facts)
+            node_facts = self.populate_es_container_spec(spec)
+            node_facts['name'] = dc_item["metadata"]["name"]
+            node_facts['selector'] = dc_item["spec"]["selector"]
+            node_facts['replicas'] = dc_item["spec"]["replicas"]
+            self.append_facts_for("existing_node_topology", es_role, node_facts)
 
     def facts_for_services(self, namespace):
         ''' Gathers facts for services in logging namespace '''

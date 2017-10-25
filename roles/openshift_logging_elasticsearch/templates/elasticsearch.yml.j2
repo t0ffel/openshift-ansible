@@ -30,13 +30,13 @@ cloud:
 discovery:
   type: kubernetes
   zen.ping.multicast.enabled: false
-  zen.minimum_master_nodes: {{ es_masters_quorum | int }}
+#  zen.minimum_master_nodes: {{ es_masters_quorum | default(1) | int }}
 
 gateway:
   recover_after_nodes: {{ es_recover_after_nodes }}
-  expected_master_nodes: {{ es_masters_quorum | int }}
-  expected_nodes: {{ es_recover_expected_nodes }}
-  expected_data_nodes: {{ es_recover_expected_data_nodes }}
+#  expected_master_nodes: {{ es_masters_quorum | default(1) | int}}
+  expected_nodes: {{ es_recover_expected_nodes | default(1) }}
+  expected_data_nodes: {{ es_recover_expected_data_nodes | default(1) }}
   recover_after_time: "{{ openshift_elasticsearch_recover_after_time }}"
 
 io.fabric8.elasticsearch.authentication.users: ["system.logging.kibana", "system.logging.fluentd", "system.logging.curator", "system.admin"]
