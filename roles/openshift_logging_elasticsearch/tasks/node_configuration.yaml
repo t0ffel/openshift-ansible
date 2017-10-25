@@ -1,8 +1,4 @@
 ---
-- set_fact:
-    __es_num_of_shards: "{{ _es_configmap | default({}) | walk('index.number_of_shards', '1') }}"
-    __es_num_of_replicas: "{{ _es_configmap | default({}) | walk('index.number_of_replicas', '0') }}"
-
 # configmap
 - template:
     src: jvm.options.j2
