@@ -14,7 +14,7 @@ openshift_logging_elasticsearch_cluster_size: 1
 openshift_logging_elasticsearch_replica_count: 1
 openshift_logging_elasticsearch_pvc_prefix: logging-es
 openshift_logging_elasticsearch_pv_selector: {}
-kubeconfig: /home/centos/.kube/config
+kubeconfig: /etc/origin/master-config.kubeconfig
 
 # ES deployment type
 openshift_logging_elasticsearch_deployment_type: "data-master"

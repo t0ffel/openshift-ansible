@@ -241,7 +241,7 @@ def main():
     module = AnsibleModule(   # noqa: F405
         argument_spec=dict(
             existing_topology={"default": "{}", "type": "list"},
-            desired_topology={"required": False, "type": "dict", "default": "{}"},
+            desired_topology={"required": False, "type": "list", "default": "[]"},
             elasticsearch_clustername={"required": True, "type": "str"},
             elasticsearch_cluster_size={"required": False, "type": "int"},
             elasticsearch_cpu_limit={"required": False, "type": "str"},
