@@ -186,6 +186,6 @@ openshift_logging_mux_namespaces: []
 #fluentd_mux_config_contents:
 #fluentd_mux_secureforward_contents:
 
-openshift_logging_es_node_topology: {}
+openshift_logging_es_node_topology: []
 
-openshift_logging_es_ops_node_topology: {}
+openshift_logging_es_ops_node_topology: []
