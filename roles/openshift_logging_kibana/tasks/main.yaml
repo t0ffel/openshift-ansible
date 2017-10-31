@@ -29,6 +29,7 @@
     name: "aggregated-logging-kibana"
     namespace: "{{ openshift_logging_namespace }}"
     image_pull_secrets: "{{ openshift_logging_image_pull_secret }}"
+    kubeconfig: "{{ kubeconfig }}"
   when: openshift_logging_image_pull_secret != ''
 
 - set_fact:
@@ -51,6 +52,7 @@
     namespace: "{{ openshift_logging_namespace }}"
     files:
     - "{{ tempdir }}/templates/kibana-sa.yaml"
+    kubeconfig: "{{ kubeconfig }}"
   when:
   - openshift_logging_image_pull_secret == ''
 
@@ -103,6 +105,7 @@
     ports:
     - port: 443
       targetPort: "oaproxy"
+    kubeconfig: "{{ kubeconfig }}"
 
 - oc_edit:
     kind: service
@@ -111,6 +114,7 @@
     separator: '#'
     content:
       metadata#annotations#service.alpha.openshift.io/serving-cert-secret-name: "proxy-tls"
+    kubeconfig: '{{ kubeconfig }}'
 
 # create routes
 # TODO: set up these certs differently?
@@ -162,6 +166,7 @@
     kind: route
     files:
     - "{{ tempdir }}/templates/kibana-route.yaml"
+    kubeconfig: "{{ kubeconfig }}"
 
 # preserve list of current hostnames
 - name: Get current oauthclient hostnames
@@ -170,28 +175,30 @@
     name: kibana-proxy
     namespace: "{{ openshift_logging_namespace }}"
     kind: oauthclient
+    kubeconfig: "{{ kubeconfig }}"
   register: oauth_client_list
 
 - set_fact: proxy_hostnames={{ oauth_client_list.results.results[0].redirectURIs | default ([]) + ['https://' ~ openshift_logging_kibana_hostname] }}
 
 # create oauth client
-- name: Create oauth-client template
-  template:
-    src: oauth-client.j2
-    dest: "{{ tempdir }}/templates/oauth-client.yml"
-  vars:
-    kibana_hostnames: "{{ proxy_hostnames | unique }}"
-    secret: "{{ key_pairs | entry_from_named_pair('oauth_secret') | b64decode }}"
-
-- name: Set kibana-proxy oauth-client
-  oc_obj:
-    state: present
-    name: "kibana-proxy"
-    namespace: "{{ openshift_logging_namespace }}"
-    kind: oauthclient
-    files:
-    - "{{ tempdir }}/templates/oauth-client.yml"
-    delete_after: true
+#- name: Create oauth-client template
+#  template:
+#    src: oauth-client.j2
+#    dest: "{{ tempdir }}/templates/oauth-client.yml"
+#  vars:
+#    kibana_hostnames: "{{ proxy_hostnames | unique }}"
+#    secret: "{{ key_pairs | entry_from_named_pair('oauth_secret') | b64decode }}"
+#
+#- name: Set kibana-proxy oauth-client
+#  oc_obj:
+#    state: present
+#    name: "kibana-proxy"
+#    namespace: "{{ openshift_logging_namespace }}"
+#    kind: oauthclient
+#    files:
+#    - "{{ tempdir }}/templates/oauth-client.yml"
+#    delete_after: true
+#    kubeconfig: "{{ kubeconfig }}"
 
 # create Kibana secret
 - name: Set Kibana secret
@@ -206,6 +213,7 @@
       path: "{{ generated_certs_dir }}/system.logging.kibana.key"
     - name: cert
       path: "{{ generated_certs_dir }}/system.logging.kibana.crt"
+    kubeconfig: "{{ kubeconfig }}"
 
 # create Kibana-proxy secret
 - name: Set Kibana Proxy secret
@@ -228,6 +236,7 @@
       data: "{{ key_pairs | entry_from_named_pair('session_secret') | b64decode }}"
     - path: server-tls.json
       data: "{{ key_pairs | entry_from_named_pair('server_tls') | b64decode }}"
+    kubeconfig: "{{ kubeconfig }}"
 
 # create Kibana DC
 - name: Generate Kibana DC template
@@ -260,6 +269,7 @@
     files:
     - "{{ tempdir }}/templates/kibana-dc.yaml"
     delete_after: true
+    kubeconfig: "{{ kubeconfig }}"
 
 # update master configs?
 

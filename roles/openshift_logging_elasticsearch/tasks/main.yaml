@@ -28,6 +28,7 @@
     oc_bin: '{{ oc_bin }}'
     openshift_namespace: "{{openshift_logging_elasticsearch_namespace}}"
     elasticsearch_clustername: "{{ openshift_logging_elasticsearch_clustername }}"
+    admin_kubeconfig: "{{ kubeconfig }}"
 
 - name: Reconcile OpenShift Elasticsearch node topology
   openshift_logging_elasticsearch_topology:
@@ -89,6 +90,7 @@
         path: "{{ generated_certs_dir }}/ca.crt"
       - name: admin.jks
         path: "{{ generated_certs_dir }}/system.admin.jks"
+    kubeconfig: "{{ kubeconfig }}"
 
 - include: "{{ role_path }}/tasks/svcs_routes.yaml"
 

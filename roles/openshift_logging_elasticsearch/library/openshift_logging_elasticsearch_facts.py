@@ -57,7 +57,7 @@ class OCBaseCommand(object):
         with open(kubeconfig, 'r') as kubeconfig_file:
             config = yaml.load(kubeconfig_file)
             for user in config["users"]:
-                if user["name"].startswith("system"):
+                if user["name"].startswith("asherkho"):
                     return user["name"]
         raise Exception("Unable to find system:admin in: " + kubeconfig)
 
@@ -283,8 +283,8 @@ class OpenshiftESFacts(OCBaseCommand):
 
         self.facts_for_services(self.namespace)
         self.facts_for_configmaps(self.namespace)
-        self.facts_for_sccs()
-        self.facts_for_clusterrolebindings(self.namespace)
+#        self.facts_for_sccs()
+#        self.facts_for_clusterrolebindings(self.namespace)
         self.facts_for_rolebindings(self.namespace)
         self.facts_for_secrets(self.namespace)
         self.facts_for_pvcs(self.namespace)
