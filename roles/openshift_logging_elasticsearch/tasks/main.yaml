@@ -112,6 +112,7 @@
     requests: "{{ item.1.requests }}"
     es_node_selector: "{{ item.1.nodeSelector | default({}) }}"
     node_storage_type: "{{ item.1.node_storage_type | default(emptydir) }}"
+    es_pvc_name: "{{ item.1.pvc_name | default('') }}"
 #    openshift_logging_elasticsearch_pvc_name: "{{ openshift_logging_es_pvc_prefix }}-{{ item.0 | int }}"
     hostmount_path: "{{ item.1.hostmount_path |default ({})}}"
     es_storage_groups: "{{ openshift_logging_elasticsearch_storage_group | default([]) }}"

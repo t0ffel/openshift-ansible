@@ -62,3 +62,4 @@
     kind: route
     files:
       - "{{ tempdir }}/{{ openshift_logging_elasticsearch_clustername }}-route.yaml"
+    kubeconfig: '{{ kubeconfig }}'

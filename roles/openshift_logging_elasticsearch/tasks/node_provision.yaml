@@ -94,7 +94,7 @@
       src: pvc.j2
       dest: "{{ tempdir }}/templates/logging-es-pvc.yml"
     vars:
-      obj_name: "{{ openshift_logging_elasticsearch_pvc_name }}"
+      obj_name: "{{ es_pvc_name }}"
       size: "{{ openshift_logging_elasticsearch_pvc_size }}"
       access_modes: "{{ openshift_logging_elasticsearch_pvc_access_modes | list }}"
       pv_selector: "{{ openshift_logging_elasticsearch_pvc_pv_selector }}"
@@ -119,11 +119,12 @@
   oc_obj:
     state: present
     kind: pvc
-    name: "{{ openshift_logging_elasticsearch_pvc_name }}"
+    name: "{{ es_pvc_name }}"
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
     files:
     - "{{ tempdir }}/templates/logging-es-pvc.yml"
     delete_after: true
+    kubeconfig: '{{ kubeconfig }}'
   when:
   - node_storage_type == "pvc"
 

@@ -102,7 +102,7 @@
     - system.logging.es
   loop_control:
     loop_var: node_name
-  when: openshift_logging_es_allow_external | bool
+  when: openshift_logging_elasticsearch_allow_external | bool
 
 - name: Creating necessary JKS certs
   include: generate_jks.yaml

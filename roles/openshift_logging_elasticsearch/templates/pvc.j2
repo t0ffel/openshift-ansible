@@ -11,7 +11,7 @@ metadata:
 {% endfor %}
 {% endif %}
 spec:
-{% if pv_selector is defined and pv_selector is mapping %}
+{% if pv_selector is defined and pv_selector is mapping and pv_selector %}
   selector:
     matchLabels:
 {% for key,value in pv_selector.iteritems() %}

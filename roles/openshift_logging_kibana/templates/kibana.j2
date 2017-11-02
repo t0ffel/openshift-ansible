@@ -118,9 +118,13 @@ spec:
             - --tls-cert=/etc/tls/private/tls.crt
             - --tls-key=/etc/tls/private/tls.key
             - --cookie-secret=SECRET
+            - --openshift-ca=/etc/customcerts/CertificateAuthority.crt,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
           volumeMounts:
             - name: proxy-tls
               mountPath: /etc/tls/private
+              readOnly: true
+            - name: oauth-cert
+              mountPath: /etc/customcerts/
               readOnly: true
       volumes:
         - name: kibana
@@ -129,3 +133,6 @@ spec:
         - name: proxy-tls
           secret:
             secretName: proxy-tls
+        - name: oauth-cert
+          secret:
+            secretName: logging-kibana-proxy

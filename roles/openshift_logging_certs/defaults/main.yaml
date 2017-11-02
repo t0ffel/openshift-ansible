@@ -1,3 +1,3 @@
 generated_certs_dir: /etc/origin/logging
 svc_name: elastic1
-openshift_logging_es_allow_external: false
+openshift_logging_elasticsearch_allow_external: false

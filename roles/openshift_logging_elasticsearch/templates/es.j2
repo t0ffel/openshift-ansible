@@ -203,7 +203,7 @@ spec:
 {% if storage_type == 'pvc' %}
         - name: elasticsearch-storage
           persistentVolumeClaim:
-            claimName: {{ openshift_logging_elasticsearch_pvc_name }}
+            claimName: {{ es_pvc_name }}
 {% elif storage_type == 'hostmount' %}
 {% for item in hostmount_path %}
         - name: elasticsearch-storage-{{ loop.index0 }}
