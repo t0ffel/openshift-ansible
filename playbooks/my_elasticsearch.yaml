@@ -20,18 +20,56 @@
       openshift_logging_elasticsearch_api_cert_name: "logging-es"
       openshift_logging_elasticsearch_prometheus_sa: system:serviceaccount:elasticsearch:prometheus
       openshift_logging_elasticsearch_node_topology:
-      - node_role:  clientdatamaster
+      - node_role:  master
+        replicas: 3
         storage_group: 65534
-        node_storage_type: pvc
+        node_storage_type: emptydir
         limits:
           cpu: 1000m
           memory: 2Gi
-        pvc_size: ''
         requests:
           memory: 1Gi
-        pvc_name: logging-es-0
+        nodeSelector:
+          elasticsearch: "true"
+      - node_role:  clientdata
+        storage_group: 65534
+        node_storage_type: hostmount
+        limits:
+          cpu: 1000m
+          memory: 4Gi
+        requests:
+          memory: 1Gi
+        hostmount_path:
+        - /mnt/disk2
+        - /mnt/disk3
+        nodeSelector:
+          kubernetes.io/hostname: gprfc054.o.internal
+      - node_role:  clientdata
+        storage_group: 65534
+        node_storage_type: hostmount
+        limits:
+          cpu: 1000m
+          memory: 4Gi
+        requests:
+          memory: 1Gi
+        hostmount_path:
+        - /mnt/disk2
+        - /mnt/disk3
+        nodeSelector:
+          kubernetes.io/hostname: gprfc056.o.internal
+      - node_role:  clientdata
+        storage_group: 65534
+        node_storage_type: hostmount
+        limits:
+          cpu: 1000m
+          memory: 4Gi
+        requests:
+          memory: 1Gi
+        hostmount_path:
+        - /mnt/disk2
+        - /mnt/disk3
         nodeSelector: 
-          kubernetes.io/hostname: gprfc061.o.internal
+          kubernetes.io/hostname: gprfc059.o.internal
       openshift_logging_elasticsearch_log_appenders: console
       openshift_logging_elasticsearch_node_topology_defined: "true"
       openshift_logging_elasticsearch_allow_external: true
@@ -46,7 +84,7 @@
       openshift_logging_kibana_namespace: "test-elasticsearch"
       openshift_logging_namespace: test-elasticsearch
 #      openshift_logging_kibana_master_url: 
-      openshift_logging_kibana_hostname: logging-kibana-test-elasticsearch.ose.sbu.lab.eng.bos.redhat.com
+      openshift_logging_kibana_hostname: kibana-test-elasticsearch.ose.sbu.lab.eng.bos.redhat.com
 #      openshift_logging_kibana_master_public_url: 
 #      openshift_logging_kibana_replicas: "{{ openshift_logging_kibana_replica_count }}"
       openshift_logging_image_pull_secret: ''

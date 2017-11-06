@@ -110,6 +110,7 @@
     generated_certs_dir: "{{ certs_dir }}"
     limits: "{{ item.1.limits }}"
     requests: "{{ item.1.requests }}"
+    replicas: "{{ item.1.replicas | default(1) }}"
     es_node_selector: "{{ item.1.nodeSelector | default({}) }}"
     node_storage_type: "{{ item.1.node_storage_type | default(emptydir) }}"
     es_pvc_name: "{{ item.1.pvc_name | default('') }}"

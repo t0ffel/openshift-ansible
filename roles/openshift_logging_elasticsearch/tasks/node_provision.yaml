@@ -150,6 +150,7 @@
     # remove mandatory logging_component
     # TODO: component below needs to be changed
     component: "{{ openshift_logging_elasticsearch_clustername }}"
+    es_replicas: "{{ replicas | default(1) }}"
     es_component: "{{ es_component }}"
     deploy_name: "{{ es_deploy_name }}"
     storage_type: "{{ node_storage_type | default(emptydir) }}"
