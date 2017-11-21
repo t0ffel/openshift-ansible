@@ -161,8 +161,13 @@
     msg: "The openshift_logging_es_log_appenders '{{ openshift_logging_es_log_appenders }}' has an unrecognized option and only supports the following as a list: {{ __es_log_appenders | join(', ') }}"
 
 - template:
-    src: elasticsearch-logging.yml.j2
-    dest: "{{ tempdir }}/elasticsearch-logging.yml"
+    src: jvm.options.j2
+    dest: "{{ tempdir }}/jvm.options"
+  changed_when: no
+
+- template:
+    src: log4j2.properties.j2
+    dest: "{{ tempdir }}/log4j2.properties"
   vars:
     root_logger: "{{openshift_logging_es_log_appenders | join(', ')}}"
   when: es_logging_contents is undefined
@@ -186,7 +191,7 @@
 
 - copy:
     content: "{{ es_logging_contents }}"
-    dest: "{{ tempdir }}/elasticsearch-logging.yml"
+    dest: "{{ tempdir }}/log4j2.properties"
   when: es_logging_contents is defined
   changed_when: no
 
@@ -203,8 +208,8 @@
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
     from_file:
       elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
-      logging.yml: "{{ tempdir }}/elasticsearch-logging.yml"
-
+      jvm.options: "{{ tempdir }}/jvm.options"
+      log4j2.properties: "{{ tempdir }}/log4j2.properties"
 
 # secret
 - name: Set ES secret
