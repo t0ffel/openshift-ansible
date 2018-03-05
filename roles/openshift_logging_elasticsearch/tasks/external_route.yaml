@@ -36,7 +36,7 @@
 - name: Generating Elasticsearch route template for the cluster {{ openshift_logging_elasticsearch_clustername }}
   template:
     src: "{{ __base_file_dir }}/route_reencrypt.j2"
-    dest: "{{mktemp.stdout}}/templates/{{ openshift_logging_elasticsearch_clustername }}-route.yaml"
+    dest: "{{mktemp.stdout}}/{{ openshift_logging_elasticsearch_clustername }}-route.yaml"
   vars:
     obj_name: "{{ openshift_logging_elasticsearch_clustername }}"
     route_host: "{{ openshift_logging_es_hostname }}"
@@ -61,4 +61,4 @@
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
     kind: route
     files:
-      - "{{ tempdir }}/templates/{{ openshift_logging_elasticsearch_clustername }}-route.yaml"
+      - "{{ tempdir }}/{{ openshift_logging_elasticsearch_clustername }}-route.yaml"

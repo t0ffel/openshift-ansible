@@ -87,11 +87,6 @@
     - openshift_logging_elasticsearch_kibana_index_mode in __kibana_index_modes
     msg: "The openshift_logging_elasticsearch_kibana_index_mode '{{ openshift_logging_elasticsearch_kibana_index_mode  }}' only supports one of: {{ __kibana_index_modes | join(', ') }}"
 
-- assert:
-    that:
-      - "{{ openshift_logging_elasticsearch_log_appenders | length > 0 }}"
-    msg: "The openshift_logging_elasticsearch_log_appenders '{{ openshift_logging_elasticsearch_log_appenders }}' has an unrecognized option and only supports the following as a list: {{ __elasticsearch_log_appenders | join(', ') }}"
-
 # Set variables common for all DCs
 - name: Setting legacy logging_component for the label
   set_fact:

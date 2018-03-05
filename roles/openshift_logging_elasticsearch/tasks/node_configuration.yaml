@@ -27,7 +27,7 @@
       name: openshift_logging
       tasks_from: patch_configmap_files.yaml
     vars:
-      configmap_name: "{{ elasticsearch_name }}"
+      configmap_name: "{{ es_cluster_name }}"
       configmap_namespace: "logging"
       configmap_file_names:
       - current_file: "elasticsearch.yml"
@@ -39,7 +39,7 @@
   - name: Set ES configmap
     oc_configmap:
       state: present
-      name: "{{ elasticsearch_name }}"
+      name: "{{ es_cluster_name }}"
       namespace: "{{ openshift_logging_elasticsearch_namespace }}"
       from_file:
         elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
@@ -60,7 +60,7 @@
       name: openshift_logging
       tasks_from: patch_configmap_files.yaml
     vars:
-      configmap_name: "{{ elasticsearch_name }}"
+      configmap_name: "{{ es_cluster_name }}"
       configmap_namespace: "logging"
       configmap_file_names:
       - current_file: "elasticsearch.yml"
@@ -71,7 +71,7 @@
   - name: Set ES configmap
     oc_configmap:
       state: present
-      name: "{{ elasticsearch_name }}"
+      name: "{{ es_cluster_name }}"
       namespace: "{{ openshift_logging_elasticsearch_namespace }}"
       from_file:
         elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"

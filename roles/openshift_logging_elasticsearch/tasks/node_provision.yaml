@@ -138,7 +138,7 @@
     src: "{{ __base_file_dir }}/es.j2"
     dest: "{{ tempdir }}/templates/logging-es-dc.yml"
   vars:
-    # es_configmap: "{{ es_deploy_name }}"
+    es_configmap: "{{ openshift_logging_elasticsearch_clustername }}"
     es_cluster_name: "{{ openshift_logging_elasticsearch_clustername }}"
     # TODO: add ability to add arbitrary label to ES deployments,
     # remove mandatory logging_component
@@ -167,7 +167,7 @@
     state: present
     name: "{{ es_deploy_name }}"
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
-    kind: dc
+    kind: DeploymentConfig
     files:
     - "{{ tempdir }}/templates/logging-es-dc.yml"
     delete_after: true
