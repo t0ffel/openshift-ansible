@@ -7,7 +7,7 @@
     namespace: "{{ openshift_logging_namespace }}"
     selector: "logging-infra"
   with_items:
-    - dc
+    - DeploymentConfig
     - rc
     - svc
     - routes
@@ -36,7 +36,7 @@
 - name: delete logging is
   oc_obj:
     state: absent
-    kind: is
+    kind: ImageStream
     namespace: "{{ openshift_logging_namespace }}"
     selector: "logging-infra=support"
 
