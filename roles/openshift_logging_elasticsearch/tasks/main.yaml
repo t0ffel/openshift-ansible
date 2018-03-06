@@ -4,7 +4,7 @@
     name: openshift_control_plane
     tasks_from: ensure_nodes_matching_selector.yml
   vars:
-    openshift_master_ensure_nodes_selector: "{{ openshift_logging_es_nodeselector | map_to_pairs }}"
+    openshift_master_ensure_nodes_selector: "{{ openshift_logging_elasticsearch_nodeselector | map_to_pairs }}"
     openshift_master_ensure_nodes_service: Elasticsearch
 
 - fail:
@@ -86,6 +86,11 @@
     that:
     - openshift_logging_elasticsearch_kibana_index_mode in __kibana_index_modes
     msg: "The openshift_logging_elasticsearch_kibana_index_mode '{{ openshift_logging_elasticsearch_kibana_index_mode  }}' only supports one of: {{ __kibana_index_modes | join(', ') }}"
+
+- assert:
+    that:
+    - "{{ openshift_logging_es_log_appenders | length > 0 }}"
+    msg: "The openshift_logging_es_log_appenders '{{ openshift_logging_es_log_appenders }}' has an unrecognized option and only supports the following as a list: {{ __es_log_appenders | join(', ') }}"
 
 # Set variables common for all DCs
 - name: Setting legacy logging_component for the label
