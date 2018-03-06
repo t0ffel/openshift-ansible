@@ -30,7 +30,7 @@
     state: absent
     name: logging-eventrouter
     namespace: "{{ openshift_logging_eventrouter_namespace }}"
-    kind: dc
+    kind: DeploymentConfig
 
 - name: Delete EventRouter Template
   oc_obj:
