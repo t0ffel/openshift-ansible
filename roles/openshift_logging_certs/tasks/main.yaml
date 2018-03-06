@@ -56,6 +56,14 @@
     - procure_component: es
       hostnames: "es, {{ svc_name }}"
 
+- include_tasks: procure_server_certs.yaml
+  loop_control:
+    loop_var: cert_info
+  with_items:
+    - procure_component: kibana
+    - procure_component: kibana-internal
+      hostnames: "kibana, {{openshift_logging_kibana_hostname}}"
+
 - name: Copy proxy TLS configuration file
   copy: src=server-tls.json dest={{generated_certs_dir}}/server-tls.json
   when: server_tls_json is undefined

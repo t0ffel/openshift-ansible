@@ -86,7 +86,7 @@ spec:
             timeoutSeconds: 4
             periodSeconds: 5
         -
-          name: "kibana-proxy"
+          name: "oauth-proxy"
           image: {{ proxy_image }}
           imagePullPolicy: IfNotPresent
 {% if (kibana_proxy_memory_limit is defined and kibana_proxy_memory_limit is not none and kibana_proxy_memory_limit != "") or (kibana_proxy_cpu_limit is defined and kibana_proxy_cpu_limit is not none and kibana_proxy_cpu_limit != "") or (kibana_proxy_cpu_request is defined and kibana_proxy_cpu_request is not none and kibana_proxy_cpu_request != "") %}
@@ -113,64 +113,23 @@ spec:
           ports:
             -
               name: "oaproxy"
-              containerPort: 3000
-          env:
-            -
-             name: "OAP_BACKEND_URL"
-             value: "http://localhost:5601"
-            -
-             name: "OAP_AUTH_MODE"
-             value: "oauth2"
-            -
-             name: "OAP_TRANSFORM"
-             value: "user_header,token_header"
-            -
-             name: "OAP_OAUTH_ID"
-             value: kibana-proxy
-            -
-             name: "OAP_MASTER_URL"
-             value: {{ openshift_logging_kibana_master_url }}
-            -
-             name: "OAP_PUBLIC_MASTER_URL"
-             value: {{ openshift_logging_kibana_master_public_url }}
-            -
-             name: "OAP_LOGOUT_REDIRECT"
-             value: {{ openshift_logging_kibana_master_public_url }}/console/logout
-            -
-             name: "OAP_MASTER_CA_FILE"
-             value: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-            -
-             name: "OAP_DEBUG"
-             value: "{{ openshift_logging_kibana_proxy_debug }}"
-            -
-             name: "OAP_OAUTH_SECRET_FILE"
-             value: "/secret/oauth-secret"
-            -
-             name: "OAP_SERVER_CERT_FILE"
-             value: "/secret/server-cert"
-            -
-             name: "OAP_SERVER_KEY_FILE"
-             value: "/secret/server-key"
-            -
-             name: "OAP_SERVER_TLS_FILE"
-             value: "/secret/server-tls.json"
-            -
-             name: "OAP_SESSION_SECRET_FILE"
-             value: "/secret/session-secret"
-            -
-             name: "OCP_AUTH_PROXY_MEMORY_LIMIT"
-             valueFrom:
-               resourceFieldRef:
-                 containerName: kibana-proxy
-                 resource: limits.memory
+              containerPort: 8443
+          args:
+            - --https-address=:8443
+            - --provider=openshift
+            - --openshift-service-account=aggregated-logging-kibana
+            - --upstream=http://localhost:5601
+            - --tls-cert=/etc/tls/private/tls.crt
+            - --tls-key=/etc/tls/private/tls.key
+            - --cookie-secret=SECRET
           volumeMounts:
-            - name: kibana-proxy
-              mountPath: /secret
+            - name: proxy-tls
+              mountPath: /etc/tls/private
               readOnly: true
       volumes:
         - name: kibana
           secret:
             secretName: logging-kibana
-        - name: kibana-proxy
+        - name: proxy-tls
           secret:
-            secretName: logging-kibana-proxy
+            secretName: proxy-tls
