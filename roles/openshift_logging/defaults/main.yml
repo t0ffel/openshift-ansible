@@ -113,6 +113,8 @@ openshift_logging_es_config: {}
 openshift_logging_es_allow_external: False
 openshift_logging_es_hostname: "{{ 'es.' ~ openshift_master_default_subdomain }}"
 
+elasticsearch_storage_type: "emptydir"
+
 #The absolute path on the control node to the cert file to use
 #for the public facing es certs
 openshift_logging_es_cert: ""
