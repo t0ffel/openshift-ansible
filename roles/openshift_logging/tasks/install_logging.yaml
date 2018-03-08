@@ -149,8 +149,6 @@
   when:
   - openshift_logging_use_ops | bool
 
-
-
 # Elasticsearch Ops cluster
 - include_role:
     name: openshift_logging_elasticsearch
