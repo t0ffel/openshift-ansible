@@ -1,8 +1,18 @@
 ---
-## get all pods for the cluster
+- name: Gather Elasticsearch cluster deploymentconfigs and pods info
+  openshift_logging_elasticsearch_dc_facts:
+    oc_bin: '{{ oc_bin }}'
+    openshift_namespace: "{{openshift_logging_elasticsearch_namespace}}"
+    elasticsearch_clustername: "{{ _cluster_component }}"
+
+# get all pods for the cluster
 - command: >
     {{ openshift_client_binary }} get pod -l component={{ _cluster_component }},provider=openshift -n {{ openshift_logging_elasticsearch_namespace }} -o jsonpath={.items[?(@.status.phase==\"Running\")].metadata.name}
   register: _cluster_pods
+
+- set_fact:
+    _master_dcs: '{{ openshift_logging_elasticsearch_dc_facts.masters }}'
+    _nonmaster_dcs: '{{ openshift_logging_elasticsearch_dc_facts.nonmasters }}'
 
 ### Check for cluster state before making changes -- if its red then we don't want to continue
 - name: "Checking current health for {{ _es_node }} cluster"
@@ -61,10 +71,6 @@
     - _cluster_pods.stdout_lines | count > 0
     - full_restart_cluster | bool
 
-  - command: >
-      {{ openshift_client_binary }} get deploymentconfig -l component={{ _cluster_component }},provider=openshift -n {{ openshift_logging_elasticsearch_namespace }} -o jsonpath={.items[*].metadata.name}
-    register: _cluster_dcs
-
   # If we are currently restarting the "es" cluster we want to check if we are scaling up the number of es nodes
   # If we are currently restarting the "es-ops" cluster we want to check if we are scaling up the number of ops nodes
   # If we've created a new node for that cluster then the appropriate variable will be true, otherwise we default to false
@@ -72,9 +78,17 @@
       _skip_healthcheck: "{{ ( __logging_scale_up | default(false) ) if _cluster_component == 'es' else ( __logging_ops_scale_up | default(false) ) }}"
 
   ## restart all dcs for full restart
-  - name: "Restart ES node {{ _es_node }}"
+  - name: "Restart master ES node {{ _es_node }}"
     include_tasks: restart_es_node.yml
-    with_items: "{{ _cluster_dcs.stdout_lines }}"
+    with_items: "{{ _master_dcs }}"
+    loop_control:
+      loop_var: _es_node
+    when:
+    - full_restart_cluster | bool
+
+  - name: "Restart non-master ES node {{ _es_node }}"
+    include_tasks: restart_es_node.yml
+    with_items: "{{ _nonmaster_dcs }}"
     loop_control:
       loop_var: _es_node
     when:
@@ -88,7 +102,7 @@
       loop_var: _es_node
     when:
     - not full_restart_cluster | bool
-    - _es_node in _cluster_dcs.stdout
+    - _es_node in _cluster_dcs
 
   ## we may need a new first pod to run against -- fetch them all again
   - command: >
