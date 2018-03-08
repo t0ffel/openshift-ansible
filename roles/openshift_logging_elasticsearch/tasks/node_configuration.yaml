@@ -91,4 +91,3 @@
   - set_fact:
       _restart_logging_nodes: "{{ _restart_logging_nodes | default([]) + [_es_dcs.stdout] | unique }}"
     when: _es_dcs.stdout != ""
-
