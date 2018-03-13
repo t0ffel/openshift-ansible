@@ -47,6 +47,9 @@ spec:
 {% for group in es_storage_groups %}
         - {{group}}
 {% endfor %}
+{% if run_as_user is defined %}
+      runAsUser: {{ run_as_user }}
+{% endif %}
 {% if es_node_selector is iterable and es_node_selector | length > 0 %}
       nodeSelector:
 {% for key, value in es_node_selector.iteritems() %}
