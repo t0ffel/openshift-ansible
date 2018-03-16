@@ -1,11 +1,11 @@
 ---
-- name: Ensure that ElasticSearch has nodes to run on
-  import_role:
-    name: openshift_master
-    tasks_from: ensure_nodes_matching_selector.yml
-  vars:
-    openshift_master_ensure_nodes_selector: "{{ openshift_logging_elasticsearch_nodeselector | map_to_pairs }}"
-    openshift_master_ensure_nodes_service: Elasticsearch
+#- name: Ensure that ElasticSearch has nodes to run on
+#  import_role:
+#    name: openshift_master
+#    tasks_from: ensure_nodes_matching_selector.yml
+#  vars:
+#    openshift_master_ensure_nodes_selector: "{{ openshift_logging_elasticsearch_nodeselector | map_to_pairs }}"
+#    openshift_master_ensure_nodes_service: Elasticsearch
 
 - fail:
     msg: Invalid deployment type, one of ['data-master', 'data-client', 'master', 'client'] allowed
@@ -59,6 +59,7 @@
     oc_bin: '{{ oc_bin }}'
     openshift_namespace: "{{openshift_logging_elasticsearch_namespace}}"
     elasticsearch_clustername: "{{ openshift_logging_elasticsearch_clustername }}"
+    admin_kubeconfig: '{{ kubeconfig }}'
 
 - name: Reconcile OpenShift Elasticsearch node topology
   openshift_logging_elasticsearch_topology:
@@ -121,6 +122,7 @@
       path: "{{ generated_certs_dir }}/ca.crt"
     - name: admin.jks
       path: "{{ generated_certs_dir }}/system.admin.jks"
+    kubeconfig: '{{ kubeconfig }}'
 
 - include_tasks: svcs_routes.yaml
 
@@ -142,7 +144,8 @@
     requests: "{{ item.1.requests }}"
     es_node_selector: "{{ item.1.nodeSelector | default({}) }}"
     node_storage_type: "{{ item.1.node_storage_type | default(emptydir) }}"
-    # openshift_logging_elasticsearch_pvc_name: "{{ openshift_logging_es_pvc_prefix }}-{{ item.0 | int }}"
+    openshift_logging_elasticsearch_pvc_name: "{{ item.1.pvc_name | default('')}}"
+    openshift_logging_es_number_of_replicas: "{{ item.1.replicas | default(1) }}"
     hostmount_path: "{{ item.1.hostmount_path |default ({})}}"
     es_storage_groups: "{{ openshift_logging_elasticsearch_storage_group | default([]) }}"
     es_container_security_context: "{{ _es_containers.elasticsearch.securityContext if _es_containers is defined and 'elasticsearch' in _es_containers and 'securityContext' in _es_containers.elasticsearch else None }}"
