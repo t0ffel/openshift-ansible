@@ -4,6 +4,7 @@
     oc_bin: '{{ oc_bin }}'
     openshift_namespace: "{{openshift_logging_elasticsearch_namespace}}"
     elasticsearch_clustername: "{{ _cluster_component }}"
+    admin_kubeconfig: "{{ kubeconfig }}"
 
 # get all pods for the cluster
 - command: >
@@ -20,7 +21,6 @@
     {{ openshift_client_binary }} exec "{{ _cluster_pods.stdout.split(' ')[0] }}" -c elasticsearch -n "{{ openshift_logging_elasticsearch_namespace }}" -- es_cluster_health
   register: _pod_status
   when: _cluster_pods.stdout_lines | count > 0
-
 - when:
   - _pod_status.stdout is defined
   - (_pod_status.stdout | from_json)['status'] in ['red']
@@ -130,5 +130,6 @@
       ports:
       - port: 9200
         targetPort: "restapi"
+      kubeconfig: "{{ kubeconfig }}"
     when:
     - full_restart_cluster | bool
