@@ -4,6 +4,7 @@
     kind: pod
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
     selector: component=es
+    kubeconfig: '{{ kubeconfig }}'
   register: pod_list
 
 - set_fact:
@@ -26,6 +27,7 @@
     kind: pod
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
     selector: component=es-ops
+    kubeconfig: '{{ kubeconfig }}'
   register: ops_pod_list
 
 - set_fact:

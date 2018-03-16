@@ -76,6 +76,7 @@
       from_file:
         elasticsearch.yml: "{{ tempdir }}/elasticsearch.yml"
         log4j2.properties: "{{ tempdir }}/log4j2.properties"
+      kubeconfig: '{{ kubeconfig }}'
     register: es_config_creation
     notify: "restart elasticsearch"
 

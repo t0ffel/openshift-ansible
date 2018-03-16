@@ -3,6 +3,15 @@
   command: >
     {{ openshift_client_binary }} rollout latest {{ _es_node }} -n {{ openshift_logging_elasticsearch_namespace }}
 
+- name: "Waiting for {{ _es_node }} to finish scaling up"
+  oc_obj:
+    state: list
+    name: "{{ _es_node }}"
+    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+    kind: DeploymentConfig
+    kubeconfig: '{{ kubeconfig }}'
+  register: _dc_output1
+
 - when: not _skip_healthcheck | bool
   name: "Waiting for {{ _es_node }} to finish scaling up"
   oc_obj:
@@ -10,11 +19,12 @@
     name: "{{ _es_node }}"
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
     kind: DeploymentConfig
+    kubeconfig: '{{ kubeconfig }}'
   register: _dc_output
   until:
     - _dc_output.results.results[0].status is defined
     - _dc_output.results.results[0].status.readyReplicas is defined
-    - _dc_output.results.results[0].status.readyReplicas > 0
+    - _dc_output.results.results[0].status.readyReplicas == _dc_output.results.results[0].spec.replicas
     - _dc_output.results.results[0].status.updatedReplicas is defined
     - _dc_output.results.results[0].status.updatedReplicas > 0
   retries: 60
