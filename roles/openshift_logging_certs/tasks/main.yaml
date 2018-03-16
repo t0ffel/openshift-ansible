@@ -49,7 +49,7 @@
     - top_dir: '{{generated_certs_dir}}'
   when: not signing_conf_file.stat.exists
 
-- include: procure_server_certs.yaml
+- include_tasks: procure_server_certs.yaml
   loop_control:
     loop_var: cert_info
   with_items:

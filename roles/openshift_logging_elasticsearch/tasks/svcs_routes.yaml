@@ -24,6 +24,7 @@
     clusterip: None
     ports:
       - port: 9300
+    kubeconfig: '{{ kubeconfig }}'
 
 - name: Set {{ openshift_logging_elasticsearch_clustername }} port 9200 service
   oc_service:
@@ -39,6 +40,7 @@
     ports:
       - port: 9200
         targetPort: "restapi"
+    kubeconfig: '{{ kubeconfig }}'
 
 - name: Set {{ openshift_logging_elasticsearch_clustername }}-prometheus service
   oc_service:
@@ -55,6 +57,7 @@
     selector:
       component: "{{ openshift_logging_elasticsearch_clustername }}-prometheus"
       provider: openshift
+    kubeconfig: '{{ kubeconfig }}'
 
 - oc_edit:
     kind: service
@@ -66,6 +69,7 @@
       metadata#annotations#prometheus.io/scrape: "true"
       metadata#annotations#prometheus.io/scheme: "https"
       metadata#annotations#prometheus.io/path: "_prometheus/metrics"
+    kubeconfig: '{{ kubeconfig }}'
 
 # External routes generation
 - include: "{{ role_path }}/tasks/external_route.yaml"

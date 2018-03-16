@@ -18,6 +18,7 @@
     name: "{{ configmap_name }}"
     state: list
     namespace: "{{ configmap_namespace }}"
+    kubeconfig: '{{ kubeconfig }}'
   register: __configmap_output
 
 - when: __configmap_output.results.stderr is undefined
