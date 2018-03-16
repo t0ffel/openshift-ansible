@@ -1,0 +1,66 @@
+---
+- name: install elasticsearch
+  hosts: masters
+  roles:
+  - role: openshift_logging_elasticsearch
+    vars:
+      kubeconfig: /home/centos/.kube/config
+      openshift_is_containerized: False
+      __base_file_dir: "5.x"
+      openshift_logging_es5_techpreview: True
+      openshift_logging_image_version: techpreview
+      openshift_logging_elasticsearch_proxy_image_prefix: "docker.io/openshift/"
+      openshift_logging_elasticsearch_proxy_image_version: "v1.0.0"
+      openshift_logging_es_log_appenders: ['file']
+      openshift_logging_elasticsearch_namespace: "dh-stage-storage"
+      openshift_logging_elasticsearch_clustername: "elastic1"
+      openshift_logging_elasticsearch_sa_name: "sa-elasticsearch"
+      openshift_logging_elasticsearch_clusterreader: false
+      generated_certs_dir: /home/centos/stage-es-certs
+      openshift_logging_elasticsearch_transport_cert_name: "elasticsearch"
+      openshift_logging_elasticsearch_api_cert_name: "logging-es"
+      openshift_logging_elasticsearch_prometheus_sa: system:serviceaccount:dh-stage-storage:prometheus
+      openshift_logging_elasticsearch_node_topology:
+      - node_role:  master
+        replicas: 3
+        storage_group: 65534
+        node_storage_type: emptydir
+        limits:
+          memory: 2Gi
+        requests:
+          memory: 1Gi
+          cpu: 200m
+      - node_role:  clientdata
+        storage_group: 65534
+        node_storage_type: pvc
+        limits:
+          memory: 16Gi
+        requests:
+          cpu: 1000m
+          memory: 4Gi
+        pvc_name: dh-stage-storage-pvc-1
+      - node_role:  clientdata
+        storage_group: 65534
+        node_storage_type: pvc
+        limits:
+          memory: 16Gi
+        requests:
+          cpu: 1000m
+          memory: 4Gi
+        pvc_name: dh-stage-storage-pvc-2
+      - node_role:  clientdata
+        storage_group: 65534
+        node_storage_type: pvc
+        limits:
+          memory: 16Gi
+        requests:
+          cpu: 1000m
+          memory: 4Gi
+        pvc_name: dh-stage-storage-pvc-3
+
+      openshift_logging_elasticsearch_log_appenders: console
+      openshift_logging_elasticsearch_node_topology_defined: "true"
+      openshift_logging_elasticsearch_allow_external: true
+      openshift_logging_image_prefix: docker-registry.engineering.redhat.com/aicoe/
+      openshift_logging_image_pull_secret: ''
+      openshift_logging_es_hostname: elastic1-dh-stage-storage.cloud.upshift.engineering.redhat.com
