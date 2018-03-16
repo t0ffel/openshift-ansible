@@ -56,8 +56,7 @@ class OCBaseCommand(object):
         with open(kubeconfig, 'r') as kubeconfig_file:
             config = yaml.load(kubeconfig_file)
             for user in config["users"]:
-                if user["name"].startswith("system"):
-                    return user["name"]
+                return user["name"]
         raise Exception("Unable to find system:admin in: " + kubeconfig)
 
     # pylint: disable=too-many-arguments, dangerous-default-value
