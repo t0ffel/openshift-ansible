@@ -187,7 +187,7 @@ def main():
         cmd = OpenshiftESDCFacts(module, module.params['oc_bin'],
                                  module.params['admin_kubeconfig'],
                                  module.params['openshift_namespace'],
-                                 module.params['elasticsearch_clustername']),
+                                 module.params['elasticsearch_clustername'],
                                  module.params['oc_username'])
         module.exit_json(
             ansible_facts={"openshift_logging_elasticsearch_dc_facts": cmd.build_facts()}
