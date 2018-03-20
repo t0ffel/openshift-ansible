@@ -6,8 +6,8 @@
   register: key_pairs
   with_items:
     - { name: "ca_file", file: "ca.crt" }
-    - { name: "es_key", file: "system.logging.es.key" }
-    - { name: "es_cert", file: "system.logging.es.crt" }
+#    - { name: "es_key", file: "system.logging.es.key" }
+#    - { name: "es_cert", file: "system.logging.es.crt" }
 
 - name: Generating Elasticsearch route template for the cluster {{ openshift_logging_elasticsearch_clustername }}
   template:
