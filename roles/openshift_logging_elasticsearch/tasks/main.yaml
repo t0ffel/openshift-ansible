@@ -55,7 +55,7 @@
   when: openshift is defined
 
 - pause:
-    minutes: 20
+    minutes: 2
 
 - name: Gather OpenShift Elasticsearch cluster facts
   openshift_logging_elasticsearch_facts:

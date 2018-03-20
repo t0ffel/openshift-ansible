@@ -20,7 +20,7 @@
       openshift_logging_elasticsearch_transport_cert_name: "elasticsearch"
       openshift_logging_elasticsearch_api_cert_name: "logging-es"
       openshift_logging_elasticsearch_prometheus_sa: system:serviceaccount:dh-stage-storage:prometheus
-      oc_username: system:serviceaccount:dh-prod-ci:default
+      oc_username: system:serviceaccount:dh-prod-ci:default/
       openshift_logging_elasticsearch_node_topology:
       - node_role:  master
         replicas: 3
