@@ -54,6 +54,9 @@
     oc_bin: '{{ openshift.common.client_binary |default("oc") }}'
   when: openshift is defined
 
+- pause:
+    minutes: 20
+
 - name: Gather OpenShift Elasticsearch cluster facts
   openshift_logging_elasticsearch_facts:
     oc_bin: '{{ oc_bin }}'
