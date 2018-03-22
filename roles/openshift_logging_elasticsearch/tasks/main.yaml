@@ -60,6 +60,7 @@
     openshift_namespace: "{{openshift_logging_elasticsearch_namespace}}"
     elasticsearch_clustername: "{{ openshift_logging_elasticsearch_clustername }}"
     admin_kubeconfig: '{{ kubeconfig }}'
+    oc_username: '{{ oc_username }}'
 
 - name: Reconcile OpenShift Elasticsearch node topology
   openshift_logging_elasticsearch_topology:
