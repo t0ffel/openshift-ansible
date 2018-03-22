@@ -5,6 +5,7 @@
     openshift_namespace: "{{openshift_logging_elasticsearch_namespace}}"
     elasticsearch_clustername: "{{ _cluster_component }}"
     admin_kubeconfig: "{{ kubeconfig }}"
+    oc_username: '{{ oc_username }}'
 
 # get all pods for the cluster
 - command: >
