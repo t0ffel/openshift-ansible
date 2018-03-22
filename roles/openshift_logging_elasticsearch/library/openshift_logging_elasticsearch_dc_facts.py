@@ -43,10 +43,11 @@ SA_PREFIX = "system:serviceaccount:"
 class OCBaseCommand(object):
     ''' The base class used to query openshift '''
 
-    def __init__(self, binary, kubeconfig, namespace):
+    def __init__(self, binary, kubeconfig, namespace, username):
         ''' the init method of OCBaseCommand class '''
         self.binary = binary
         self.kubeconfig = kubeconfig
+        self.username = username
         self.user = self.get_system_admin(self.kubeconfig)
         self.namespace = namespace
 
@@ -56,7 +57,7 @@ class OCBaseCommand(object):
         with open(kubeconfig, 'r') as kubeconfig_file:
             config = yaml.load(kubeconfig_file)
             for user in config["users"]:
-                if user["name"].startswith("system"):
+                if user["name"].startswith(self.username):
                     return user["name"]
         raise Exception("Unable to find system:admin in: " + kubeconfig)
 
@@ -92,10 +93,10 @@ class OpenshiftESDCFacts(OCBaseCommand):
     ''' The class structure for holding the OpenshiftLogging Facts'''
     name = "facts"
 
-    def __init__(self, logger, binary, kubeconfig, namespace, cluster_name):
+    def __init__(self, logger, binary, kubeconfig, namespace, cluster_name, oc_username):
         # pylint: disable=too-many-arguments
         ''' The init method for OpenshiftESDCFacts '''
-        super(OpenshiftESDCFacts, self).__init__(binary, kubeconfig, namespace)
+        super(OpenshiftESDCFacts, self).__init__(binary, kubeconfig, namespace, oc_username)
         self.logger = logger
         self.cluster_name = cluster_name
         self.facts = dict()
@@ -177,7 +178,8 @@ def main():
             admin_kubeconfig={"default": "/etc/origin/master/admin.kubeconfig", "type": "str"},
             oc_bin={"required": True, "type": "str"},
             openshift_namespace={"required": True, "type": "str"},
-            elasticsearch_clustername={"required": True, "type": "str"}
+            elasticsearch_clustername={"required": True, "type": "str"},
+            oc_username={"default": "system:admin", "type": "str"}
         ),
         supports_check_mode=False
     )
@@ -185,7 +187,8 @@ def main():
         cmd = OpenshiftESDCFacts(module, module.params['oc_bin'],
                                  module.params['admin_kubeconfig'],
                                  module.params['openshift_namespace'],
-                                 module.params['elasticsearch_clustername'])
+                                 module.params['elasticsearch_clustername'],
+                                 module.params['oc_username'])
         module.exit_json(
             ansible_facts={"openshift_logging_elasticsearch_dc_facts": cmd.build_facts()}
         )
