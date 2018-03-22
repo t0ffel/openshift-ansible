@@ -15,6 +15,7 @@ openshift_logging_elasticsearch_replica_count: 1
 openshift_logging_elasticsearch_pvc_prefix: logging-es
 openshift_logging_elasticsearch_pv_selector: {}
 kubeconfig: /etc/origin/master/openshift-master.kubeconfig
+oc_username: "system:"
 
 # ES deployment type
 openshift_logging_elasticsearch_deployment_type: "data-master"
