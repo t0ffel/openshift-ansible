@@ -17,3 +17,4 @@
       openshift_logging_kibana_proxy_image_prefix: "docker.io/openshift/"
       openshift_logging_kibana_proxy_image_version: "v1.0.0"
       kubeconfig: /home/centos/.kube/config
+      __base_file_dir: 5.x
