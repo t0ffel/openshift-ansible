@@ -176,7 +176,7 @@
 
 - set_fact:
     _restart_logging_components: "{{ _restart_logging_components | default([]) + [es_component] | unique }}"
-    #_restart_logging_nodes: "{{ _restart_logging_nodes | default([]) + [es_deploy_name] | unique }}"
+    _restart_logging_nodes: "{{ _restart_logging_nodes | default([]) + [es_deploy_name] | unique }}"
   when: es_dc_creation.changed | bool
 
 ## Placeholder for migration when necessary ##
