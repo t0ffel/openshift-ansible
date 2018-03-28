@@ -58,7 +58,7 @@ spec:
       containers:
         - name: "elasticsearch"
           image: {{image}}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           resources:
 {% if limits is defined %}
             limits:
