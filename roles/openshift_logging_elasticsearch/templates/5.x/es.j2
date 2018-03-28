@@ -70,7 +70,7 @@ spec:
       containers:
         - name: "elasticsearch"
           image: "{{ openshift_logging_elasticsearch_image_prefix }}logging-elasticsearch5:{{ openshift_logging_elasticsearch_image_version }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           resources:
 {% if limits is defined %}
             limits:
