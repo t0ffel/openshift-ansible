@@ -96,14 +96,14 @@
     - full_restart_cluster | bool
 
   ## restart the node if it's dc is in the list of nodes to restart?
-  - name: "Restart ES node {{ _es_node }}"
-    include_tasks: restart_es_node.yml
-    with_items: "{{ _restart_logging_nodes }}"
-    loop_control:
-      loop_var: _es_node
-    when:
-    - not full_restart_cluster | bool
-    - _es_node in _cluster_dcs
+  #- name: "Restart ES node {{ _es_node }}"
+  #  include_tasks: restart_es_node.yml
+  #  with_items: "{{ _restart_logging_nodes }}"
+  #  loop_control:
+  #    loop_var: _es_node
+  #  when:
+  #  - not full_restart_cluster | bool
+  #  - _es_node in _cluster_dcs
 
   ## we may need a new first pod to run against -- fetch them all again
   - command: >
