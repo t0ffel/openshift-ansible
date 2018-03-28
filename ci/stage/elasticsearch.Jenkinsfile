@@ -10,7 +10,7 @@ properties(
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
     parameters(
       [
-        string(defaultValue: '0312_es5_dev', description: 'commit ref hash, branch, or tag to build', name: 'ELASTICSEARCH_BRANCH'),
+        string(defaultValue: '0326_es5_dev', description: 'commit ref hash, branch, or tag to build', name: 'ELASTICSEARCH_BRANCH'),
         string(defaultValue: 'dh-stage-storage', description: 'OpenShift Project to deploy Elasticsearch into', name: 'ELASTICSEARCH_PROJECT'),
       ]
     ),
@@ -39,7 +39,7 @@ ansiColor('xterm') {
 def checkout_scms() {
     checkout poll: false, scm: [
       $class: 'GitSCM',
-      branches: [[name: "*/0312_es5_dev"]],
+      branches: [[name: "*/${ELASTICSEARCH_BRANCH}"]],
       doGenerateSubmoduleConfigurations: false,
       extensions: [
         [$class: 'WipeWorkspace'],
