@@ -124,6 +124,7 @@
       files:
       - "{{ tempdir }}/templates/logging-es-pvc.yml"
       delete_after: true
+      kubeconfig: '{{ kubeconfig }}'
 
 - name: Set deployment name
   set_fact:
