@@ -80,6 +80,7 @@ ansible-playbook -i hosts \
 --extra-vars="
 kubeconfig=$KUBECONFIG
 openshift_logging_kibana_namespace=$ELASTICSEARCH_PROJECT
+openshift_logging_namespace=$ELASTICSEARCH_PROJECT
 generated_certs_dir=$WORKSPACE/dh-ci-util/certificates/stage-es-certs/
 "  playbooks/upshift-stage-kibana.yaml
 
