@@ -181,7 +181,7 @@
   block:
   - name: Set ES StatefulSet templates for role {{ es_role }}
     template:
-      src: "{{ __base_file_dir }}/master-es.j2"
+      src: "{{ __base_file_dir }}/master-statefulset.j2"
       dest: "{{ tempdir }}/templates/logging-es-statefulset.yml"
     vars:
       es_configmap: "{{ openshift_logging_elasticsearch_clustername }}"

@@ -14,6 +14,13 @@
 #   new_file            -- The file path to the file we are comparing to current_file
 #   protected_lines     -- List of variables whose line will be excluded when creating a diff
 
+- name: Create local temp directory for doing work in
+  local_action: command mktemp -d /tmp/openshift-logging-configmaps-XXXXXX
+  register: local_tmp
+  changed_when: False
+  check_mode: no
+  become: false
+
 - oc_configmap:
     name: "{{ configmap_name }}"
     state: list
@@ -30,3 +37,9 @@
   with_items: "{{ configmap_file_names }}"
   loop_control:
     loop_var: configmap_files
+
+- name: Cleaning up local temp dir
+  local_action: file path="{{local_tmp.stdout}}" state=absent
+  tags: logging_cleanup
+  changed_when: False
+  become: false
