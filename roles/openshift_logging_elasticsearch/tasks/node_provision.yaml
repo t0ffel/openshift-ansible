@@ -137,43 +137,85 @@
     storage_type: "{{ node_storage_type }}"
 
 # DC
-- name: Set ES dc templates for role {{ es_role }}
-  template:
-    src: "{{ __base_file_dir }}/es.j2"
-    dest: "{{ tempdir }}/templates/logging-es-dc.yml"
-  vars:
-    es_configmap: "{{ openshift_logging_elasticsearch_clustername }}"
-    es_cluster_name: "{{ openshift_logging_elasticsearch_clustername }}"
-    # TODO: add ability to add arbitrary label to ES deployments,
-    # remove mandatory logging_component
-    # TODO: component below needs to be changed
-    component: "{{ openshift_logging_elasticsearch_clustername }}"
-    es_component: "{{ es_component }}"
-    deploy_name: "{{ es_deploy_name }}"
-    storage_type: "{{ node_storage_type | default(emptydir) }}"
-    image: "{{ openshift_logging_elasticsearch_image_prefix }}logging-elasticsearch:{{ openshift_logging_elasticsearch_image_version }}"
-    proxy_image: "{{ openshift_logging_elasticsearch_proxy_image_prefix }}oauth-proxy:{{ openshift_logging_elasticsearch_proxy_image_version }}"
-    es_node_selector: "{{ openshift_logging_elasticsearch_nodeselector | default({}) }}"
-    es_storage_groups: "{{ openshift_logging_elasticsearch_storage_group | default([]) }}"
-    es_container_security_context: "{{ _es_containers.elasticsearch.securityContext if _es_containers is defined and 'elasticsearch' in _es_containers and 'securityContext' in _es_containers.elasticsearch else None }}"
-    deploy_type: "{{ openshift_logging_elasticsearch_deployment_type }}"
-    basic_auth_passwd: "{{ ( _logging_metrics_proxy_passwd['content'] | b64decode | from_yaml )[openshift_logging_elasticsearch_prometheus_sa]['passwd'] | b64decode }}"
-    es_number_of_shards: "{{ openshift_logging_es_number_of_shards | default(1) }}"
-    es_replicas: "{{ openshift_logging_es_number_of_replicas| default(0) }}"
-  changed_when: false
+- when: es_role != "master"
+  block:
+  - name: Set ES dc templates for role {{ es_role }}
+    template:
+      src: "{{ __base_file_dir }}/es.j2"
+      dest: "{{ tempdir }}/templates/logging-es-dc.yml"
+    vars:
+      es_configmap: "{{ openshift_logging_elasticsearch_clustername }}"
+      es_cluster_name: "{{ openshift_logging_elasticsearch_clustername }}"
+      # TODO: add ability to add arbitrary label to ES deployments,
+      # remove mandatory logging_component
+      # TODO: component below needs to be changed
+      component: "{{ openshift_logging_elasticsearch_clustername }}"
+      es_component: "{{ es_component }}"
+      deploy_name: "{{ es_deploy_name }}"
+      storage_type: "{{ node_storage_type | default(emptydir) }}"
+      image: "{{ openshift_logging_elasticsearch_image_prefix }}logging-elasticsearch:{{ openshift_logging_elasticsearch_image_version }}"
+      proxy_image: "{{ openshift_logging_elasticsearch_proxy_image_prefix }}oauth-proxy:{{ openshift_logging_elasticsearch_proxy_image_version }}"
+      es_node_selector: "{{ openshift_logging_elasticsearch_nodeselector | default({}) }}"
+      es_storage_groups: "{{ openshift_logging_elasticsearch_storage_group | default([]) }}"
+      es_container_security_context: "{{ _es_containers.elasticsearch.securityContext if _es_containers is defined and 'elasticsearch' in _es_containers and 'securityContext' in _es_containers.elasticsearch else None }}"
+      deploy_type: "{{ openshift_logging_elasticsearch_deployment_type }}"
+      basic_auth_passwd: "{{ ( _logging_metrics_proxy_passwd['content'] | b64decode | from_yaml )[openshift_logging_elasticsearch_prometheus_sa]['passwd'] | b64decode }}"
+      es_number_of_shards: "{{ openshift_logging_es_number_of_shards | default(1) }}"
+      es_replicas: "{{ openshift_logging_es_number_of_replicas| default(0) }}"
+    changed_when: false
+  
+  - name: Set ES dc for role {{ es_role }}
+    oc_obj:
+      state: present
+      name: "{{ es_deploy_name }}"
+      namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+      kind: DeploymentConfig
+      files:
+      - "{{ tempdir }}/templates/logging-es-dc.yml"
+      delete_after: true
+      kubeconfig: '{{ kubeconfig }}'
+    register: es_dc_creation
+    notify: "restart elasticsearch"
 
-- name: Set ES dc for role {{ es_role }}
-  oc_obj:
-    state: present
-    name: "{{ es_deploy_name }}"
-    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
-    kind: DeploymentConfig
-    files:
-    - "{{ tempdir }}/templates/logging-es-dc.yml"
-    delete_after: true
-    kubeconfig: '{{ kubeconfig }}'
-  register: es_dc_creation
-  notify: "restart elasticsearch"
+- when: es_role == "master"
+  block:
+  - name: Set ES StatefulSet templates for role {{ es_role }}
+    template:
+      src: "{{ __base_file_dir }}/master-es.j2"
+      dest: "{{ tempdir }}/templates/logging-es-statefulset.yml"
+    vars:
+      es_configmap: "{{ openshift_logging_elasticsearch_clustername }}"
+      es_cluster_name: "{{ openshift_logging_elasticsearch_clustername }}"
+      # TODO: add ability to add arbitrary label to ES deployments,
+      # remove mandatory logging_component
+      # TODO: component below needs to be changed
+      component: "{{ openshift_logging_elasticsearch_clustername }}"
+      es_component: "{{ es_component }}"
+      deploy_name: "{{ es_deploy_name }}"
+      storage_type: "{{ node_storage_type | default(emptydir) }}"
+      image: "{{ openshift_logging_elasticsearch_image_prefix }}logging-elasticsearch:{{ openshift_logging_elasticsearch_image_version }}"
+      proxy_image: "{{ openshift_logging_elasticsearch_proxy_image_prefix }}oauth-proxy:{{ openshift_logging_elasticsearch_proxy_image_version }}"
+      es_node_selector: "{{ openshift_logging_elasticsearch_nodeselector | default({}) }}"
+      es_storage_groups: "{{ openshift_logging_elasticsearch_storage_group | default([]) }}"
+      es_container_security_context: "{{ _es_containers.elasticsearch.securityContext if _es_containers is defined and 'elasticsearch' in _es_containers and 'securityContext' in _es_containers.elasticsearch else None }}"
+      deploy_type: "{{ openshift_logging_elasticsearch_deployment_type }}"
+      basic_auth_passwd: "{{ ( _logging_metrics_proxy_passwd['content'] | b64decode | from_yaml )[openshift_logging_elasticsearch_prometheus_sa]['passwd'] | b64decode }}"
+      es_number_of_shards: "{{ openshift_logging_es_number_of_shards | default(1) }}"
+      es_replicas: "{{ openshift_logging_es_number_of_replicas| default(0) }}"
+    changed_when: false
+  
+  - name: Set ES statefulset for role {{ es_role }}
+    oc_obj:
+      state: present
+      name: "{{ es_deploy_name }}"
+      namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+      kind: StatefulSet
+      files:
+      - "{{ tempdir }}/templates/logging-es-statefulset.yml"
+      delete_after: true
+      kubeconfig: '{{ kubeconfig }}'
+    register: es_dc_creation
+    notify: "restart elasticsearch"
 
 - set_fact:
     _restart_logging_components: "{{ _restart_logging_components | default([]) + [es_component] | unique }}"
