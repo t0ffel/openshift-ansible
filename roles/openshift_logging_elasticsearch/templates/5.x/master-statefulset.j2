@@ -1,4 +1,4 @@
-apiVersion: "v1"
+apiVersion: "apps/v1"
 kind: "StatefulSet"
 metadata:
   name: "{{deploy_name}}"
@@ -52,7 +52,7 @@ spec:
                   operator: In
                   values:
                   - elasticsearch
-            topologyKey: kubernetes.io/hostname
+              topologyKey: kubernetes.io/hostname
       terminationGracePeriod: 600
       serviceAccountName: {{ openshift_logging_elasticsearch_sa_name }}
       securityContext:
