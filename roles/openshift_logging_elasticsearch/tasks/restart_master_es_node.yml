@@ -1,0 +1,44 @@
+---
+- set_fact:
+    _es_pod: {{ statefulset }}-{{item}}
+
+- name: "Rolling out new pod(s) for {{ _es_node }}"
+  command: >
+    {{ openshift_client_binary }} delete pod {{ _es_pod }} -n {{ openshift_logging_elasticsearch_namespace }}
+
+- name: "Waiting for {{ statefulset }} to finish scaling up (repica {{ item }})"
+  oc_obj:
+    state: list
+    name: "{{ statefulset }}"
+    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+    kind: StatefulSet
+    kubeconfig: '{{ kubeconfig }}'
+  register: _ss_output1
+
+- when: not _skip_healthcheck | bool
+  name: "Waiting for {{ statefulset }} to finish scaling up (replica {{ item }})"
+  oc_obj:
+    state: list
+    name: "{{ statefulset }}"
+    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+    kind: StatefulSet
+    kubeconfig: '{{ kubeconfig }}'
+  register: _ss_output
+  until:
+    - _ss_output.results.results[0].status is defined
+    - _ss_output.results.results[0].status.readyReplicas is defined
+    - _ss_output.results.results[0].status.readyReplicas == _ss_output.results.results[0].spec.replicas
+    - _ss_output.results.results[0].status.updatedReplicas is defined
+    - _ss_output.results.results[0].status.updatedReplicas > 0
+  retries: 60
+  delay: 30
+
+- when: not _skip_healthcheck | bool
+  name: "Waiting for ES node {{ _es_pod }} health to be in ['green', 'yellow']"
+  shell: >
+    {{ openshift_client_binary }} exec "{{ _es_pod }}" -c elasticsearch -n "{{ openshift_logging_elasticsearch_namespace }}" -- es_cluster_health
+  register: _pod_status
+  until: (_pod_status.stdout | from_json)['status'] in ['green', 'yellow']
+  retries: "{{ __elasticsearch_ready_retries }}"
+  delay: 30
+  changed_when: false

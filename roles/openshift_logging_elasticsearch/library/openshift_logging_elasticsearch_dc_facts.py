@@ -123,8 +123,11 @@ class OpenshiftESDCFacts(OCBaseCommand):
     def facts_for_masternodes(self):
         ''' Gathers facts for deploymentconfigs of masters in logging namespace '''
         selector = self.selector + ",es-node-role=master"
-        dc_list = self.facts_for_dcs(selector)
-        self.add_list_facts_for("masters", dc_list)
+        ss_line = self.oc_command("get", "statefulset", namespace=self.namespace,
+                              add_options=["-l", selector])
+        statefulsets = dict(statefulset=ss_line.split(" ")[0],
+                            replicas=int(ss_line.split(" ")[1].split("\\")[0]))
+        self.add_list_facts_for("masters", statefulsets)
 
     def facts_for_nonmasternodes(self):
         ''' Gathers facts for deploymentconfigs of non-master nodes in logging namespace '''
