@@ -112,7 +112,7 @@
 - when: es_config_creation.changed | bool
   block:
   - set_fact:
-      _restart_logging_components: "{{ _restart_logging_components | default([]) + [es_component] | unique }}"
+      _restart_logging_components: "{{ _restart_logging_components | default([]) + [es_cluster_name] | unique }}"
 
   - shell: >
       {{ openshift_client_binary }} get deploymentconfig -l component="{{ es_component }}" -n "{{ openshift_logging_elasticsearch_namespace }}" -o name | cut -d'/' -f2
