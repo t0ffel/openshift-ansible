@@ -26,7 +26,7 @@ EXAMPLES = """
 RETURN = """
 """
 
-DEFAULT_OC_OPTIONS = ["-o", "jsonpath={range .items[*]}{.metadata.name}{\"\\n\"}{end}"]
+DEFAULT_OC_OPTIONS = ["-o", "jsonpath={range .items[*]}{.metadata.name} {.status.replicas}{\"\\n\"}{end}"]
 
 # constants used for various labels and selectors
 COMPONENT_KEY = "component"
@@ -129,8 +129,25 @@ class OpenshiftESDCFacts(OCBaseCommand):
     def facts_for_nonmasternodes(self):
         ''' Gathers facts for deploymentconfigs of non-master nodes in logging namespace '''
         selector = self.selector + ",es-node-role!=master"
-        dc_list = self.facts_for_dcs(selector)
+        dc_list_w_replicas = self.facts_for_dcs(selector)
+        if len(dc_list_w_replicas) == 0:
+            return;
+        dc_list = []
+        for line in dc_list_w_replicas:
+            dc_list.append(line.split(" ")[0])
         self.add_list_facts_for("nonmasters", dc_list)
+
+    def facts_for_nonrolledout_nonmasters(self):
+        ''' Gathers facts for deploymentconfigs of non-master nodes in logging namespace '''
+        selector = self.selector + ",es-node-role!=master"
+        dc_list_w_replicas = self.facts_for_dcs(selector)
+        if len(dc_list_w_replicas) == 0:
+            return;
+        dc_list = []
+        for line in dc_list_w_replicas:
+            if line.split(" ")[1] == "0":
+                dc_list.append(line.split(" ")[0])
+        self.add_list_facts_for("nonrolledout", dc_list)
 
     def detect_es_cluster_selector(self, namespace):
         '''Detect if old-style cluster is deployed that uses component=logging-es[-ops] label'''
@@ -167,7 +184,7 @@ class OpenshiftESDCFacts(OCBaseCommand):
 
         self.facts_for_masternodes()
         self.facts_for_nonmasternodes()
-
+        self.facts_for_nonrolledout_nonmasters()
         return self.facts
 
 
