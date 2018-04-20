@@ -38,12 +38,6 @@
   - _es_installed_version is defined
   - _es_installed_version.split('.')[0] | int < __es_version.split('.')[0] | int
 
-- set_fact:
-    full_restart_cluster: True
-  when:
-  - _es_ops_installed_version is defined
-  - _es_ops_installed_version.split('.')[0] | int < __es_version.split('.')[0] | int
-
 - name: Set oc_bin
   set_fact:
     oc_bin: oc
