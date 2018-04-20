@@ -15,6 +15,7 @@
 - set_fact:
     _master_dcs: '{{ openshift_logging_elasticsearch_dc_facts.masters }}'
     _nonmaster_dcs: '{{ openshift_logging_elasticsearch_dc_facts.nonmasters }}'
+    _nonrolledout_dcs: '{{ openshift_logging_elasticsearch_dc_facts.nonrolledout }}'
 
 ### Check for cluster state before making changes -- if its red then we don't want to continue
 - name: "Checking current health for {{ _es_node }} cluster"
@@ -94,6 +95,12 @@
       loop_var: _es_node
     when:
     - full_restart_cluster | bool
+
+  - name: "Restart non-master previously non-rolled out ES node {{ _es_node }}"
+    include_tasks: restart_es_node.yml
+    with_items: "{{ _nonrolledout_dcs }}"
+    loop_control:
+      loop_var: _es_node
 
   ## restart the node if it's dc is in the list of nodes to restart?
   #- name: "Restart ES node {{ _es_node }}"
