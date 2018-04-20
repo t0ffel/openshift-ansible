@@ -99,3 +99,6 @@ openshift_logging_es_port: 9200
 openshift_logging_es_ca: /etc/fluent/keys/ca
 openshift_logging_es_client_cert: /etc/fluent/keys/cert
 openshift_logging_es_client_key: /etc/fluent/keys/key
+
+
+full_restart_cluster: False
