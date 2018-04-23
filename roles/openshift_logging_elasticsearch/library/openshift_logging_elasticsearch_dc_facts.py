@@ -125,6 +125,8 @@ class OpenshiftESDCFacts(OCBaseCommand):
         selector = self.selector + ",es-node-role=master"
         ss_line = self.oc_command("get", "statefulset", namespace=self.namespace,
                               add_options=["-l", selector])
+        if len(ss_line) == 0:
+            return
         statefulsets = dict(statefulset=ss_line.split(" ")[0],
                             replicas=int(ss_line.split(" ")[1].split("\\")[0]))
         self.add_list_facts_for("masters", statefulsets)
