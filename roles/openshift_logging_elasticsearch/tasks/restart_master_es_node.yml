@@ -1,6 +1,6 @@
 ---
 - set_fact:
-    _es_pod: {{ statefulset }}-{{item}}
+    _es_pod: '{{ statefulset }}-{{item}}'
 
 - name: "Rolling out new pod(s) for {{ _es_node }}"
   command: >
