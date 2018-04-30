@@ -34,6 +34,16 @@
   delay: 30
 
 - when: not _skip_healthcheck | bool
+  name: "Waiting for ES node {{ _es_pod }} health to fully spin up"
+  shell: >
+    {{ openshift_client_binary }} exec "{{ _es_pod }}" -c elasticsearch -n "{{ openshift_logging_elasticsearch_namespace }}" -- es_cluster_health
+  register: _pod_status
+  until: _pod_status.stderr == ""
+  retries: "{{ __elasticsearch_ready_retries }}"
+  delay: 30
+  changed_when: false
+
+- when: not _skip_healthcheck | bool
   name: "Waiting for ES node {{ _es_pod }} health to be in ['green', 'yellow']"
   shell: >
     {{ openshift_client_binary }} exec "{{ _es_pod }}" -c elasticsearch -n "{{ openshift_logging_elasticsearch_namespace }}" -- es_cluster_health
