@@ -22,6 +22,7 @@
     kubeconfig: '{{ kubeconfig }}'
   register: _dc_output
   until:
+    - _dc_output.results is defined
     - _dc_output.results.results[0].status is defined
     - _dc_output.results.results[0].status.readyReplicas is defined
     - _dc_output.results.results[0].status.readyReplicas == _dc_output.results.results[0].spec.replicas
@@ -38,12 +39,16 @@
   changed_when: false
 
 - when: not _skip_healthcheck | bool
+  pause:
+    seconds: 5
+
+- set_fact:
+    _pod: "{{ _pods.stdout.split(' ') | first }}"
+
+- when: not _skip_healthcheck | bool
   name: "Waiting for ES node {{ _es_node }} health to be in ['green', 'yellow']"
   shell: >
     {{ openshift_client_binary }} exec "{{ _pod }}" -c elasticsearch -n "{{ openshift_logging_elasticsearch_namespace }}" -- es_cluster_health
-  with_items: "{{ _pods.stdout.split(' ') }}"
-  loop_control:
-    loop_var: _pod
   register: _pod_status
   until: (_pod_status.stdout | from_json)['status'] in ['green', 'yellow']
   retries: "{{ __elasticsearch_ready_retries }}"

@@ -49,7 +49,7 @@
   # Flush ES
   - name: "Flushing for logging-{{ _cluster_component }} cluster"
     command: >
-      {{ openshift_client_binary }} exec {{ _cluster_pods.stdout.split(' ')[0] }} -c elasticsearch -n {{ openshift_logging_elasticsearch_namespace }} -- {{ __es_local_curl }} -XPUT 'https://localhost:9200/_flush/synced'
+      {{ openshift_client_binary }} exec {{ _cluster_pods.stdout.split(' ')[0] }} -c elasticsearch -n {{ openshift_logging_elasticsearch_namespace }} -- {{ __es_local_curl }} -XPOST 'https://localhost:9200/_flush/synced'
     register: _flush_output
     changed_when: "'\"acknowledged\":true' in _flush_output.stdout"
     when:
@@ -65,7 +65,7 @@
   ## restart all dcs for full restart
   - name: "Restart master ES node {{ _es_node }}"
     include_tasks: restart_master_es_node.yml
-    with_sequence: start=0 end={{ _master_statefulset.replicas }}
+    with_sequence: start=0 end={{ _master_statefulset.replicas - 1 }}
     vars:
       statefulset: "{{ _master_statefulset.statefulset }}"
     when:
