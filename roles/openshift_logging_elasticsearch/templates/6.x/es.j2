@@ -1,0 +1,234 @@
+apiVersion: "v1"
+kind: "DeploymentConfig"
+metadata:
+  name: "{{deploy_name}}"
+  labels:
+    provider: openshift
+    component: "{{es_component}}"
+    deployment: "{{deploy_name}}"
+    cluster-name: "{{ es_cluster_name }}"
+    logging-infra: "{{logging_component}}"
+    es-node-role: "{{ es_role }}"
+    es-node-client: "{{ es_http_service }}"
+    es-node-data: "{{ node_data }}"
+    es-node-master: "{{ node_master }}"
+spec:
+  replicas: {{es_replicas|default(1)}}
+  revisionHistoryLimit: 0
+  selector:
+    provider: openshift
+    component: "{{es_component}}"
+    deployment: "{{deploy_name}}"
+    cluster-name: "{{ es_cluster_name }}"
+    logging-infra: "{{logging_component}}"
+    es-node-role: "{{ es_role }}"
+    es-node-client: "{{ es_http_service }}"
+    es-node-data: "{{ node_data }}"
+    es-node-master: "{{ node_master }}"
+  strategy:
+    type: Recreate
+  triggers: []
+  template:
+    metadata:
+      name: "{{deploy_name}}"
+      labels:
+        logging-infra: "{{logging_component}}"
+        provider: openshift
+        component: "{{es_component}}"
+        deployment: "{{deploy_name}}"
+        cluster-name: "{{ es_cluster_name }}"
+        es-node-role: "{{ es_role }}"
+        es-node-client: "{{ es_http_service }}"
+        es-node-data: "{{ node_data }}"
+        es-node-master: "{{ node_master }}"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: logging-infra
+                  operator: In
+                  values:
+                  - elasticsearch
+              topologyKey: kubernetes.io/hostname
+      terminationGracePeriod: 600
+      serviceAccountName: {{ openshift_logging_elasticsearch_sa_name }}
+      securityContext:
+        supplementalGroups:
+{% for group in es_storage_groups %}
+        - {{group}}
+{% endfor %}
+{% if es_node_selector is iterable and es_node_selector | length > 0 %}
+      nodeSelector:
+{% for key, value in es_node_selector.items() %}
+        {{key}}: "{{value}}"
+{% endfor %}
+{% endif %}
+      containers:
+        - name: "elasticsearch"
+          image: "{{ openshift_logging_elasticsearch_image_prefix }}logging-elasticsearch-6.2:{{ openshift_logging_elasticsearch_image_version }}"
+          imagePullPolicy: IfNotPresent
+          resources:
+{% if limits is defined %}
+            limits:
+{% for key, value in limits.items() %}
+              {{key}}: "{{value}}"
+{% endfor %}
+{% endif %}
+{% if requests is defined %}
+            requests:
+{% for key, value in requests.items() %}
+              {{key}}: "{{value}}"
+{% endfor %}
+{% endif %}
+{% if es_container_security_context %}
+          securityContext: {{ es_container_security_context | to_yaml }}
+{% endif %}
+          livenessProbe:
+            tcpSocket:
+              port: 9300
+            initialDelaySeconds: 480
+            periodSeconds: 5
+          readinessProbe:
+{% if 'master' == es_role %}
+            tcpSocket:
+              port: 9300
+{% else %}
+            exec:
+              command:
+              - "/usr/share/elasticsearch/probe/readiness.sh"
+              initialDelaySeconds: 10
+              timeoutSeconds: 30
+              periodSeconds: 5
+{% endif %}
+          ports:
+            -
+              containerPort: 9200
+              name: "restapi"
+            -
+              containerPort: 9300
+              name: "cluster"
+          env:
+            -
+              name: "DC_NAME"
+              value: "{{deploy_name}}"
+            -
+              name: "NAMESPACE"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            -
+              name: "POD_NAME"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            -
+              name: "SERVICE_DNS"
+              value: "{{es_cluster_name}}-cluster"
+            -
+              name: "CLUSTER_NAME"
+              value: "{{es_cluster_name}}"
+            -
+              name: "INSTANCE_RAM"
+{% if limits is defined and limits.memory is defined %}
+              value: "{{ limits.memory }}"
+{% else %}
+              value: "512m"
+{% endif %}
+            -
+              name: "HEAP_DUMP_LOCATION"
+              value: "/elasticsearch/persistent/heapdump.hprof"
+            -
+              name: "READINESS_PROBE_TIMEOUT"
+              value: "30"
+            -
+              name: "POD_LABEL"
+              value: "component={{component}}"
+            -
+              name: IS_MASTER
+              value: "{{ node_master | lower }}"
+            -
+              name: HAS_DATA
+              value: "{{ node_data | lower }}"
+            -
+              name: "PROMETHEUS_USER"
+              value: "{{openshift_logging_elasticsearch_prometheus_sa}}"
+          volumeMounts:
+            - name: elasticsearch
+              mountPath: /etc/elasticsearch/secret
+              readOnly: true
+            - name: elasticsearch-config
+              mountPath: /usr/share/java/elasticsearch/config
+              readOnly: true
+{% if storage_type == 'hostmount' %}
+{% for item in hostmount_path %}
+            - name: elasticsearch-storage-{{ loop.index0 }}
+              mountPath: /elasticsearch/persistent/{{ loop.index0 }}
+{% endfor %}
+{% else %}
+            - name: elasticsearch-storage
+              mountPath: /elasticsearch/persistent
+{% endif %}
+        -
+          name: proxy
+          image: "{{ openshift_logging_elasticsearch_proxy_image_prefix }}oauth-proxy:{{ openshift_logging_elasticsearch_proxy_image_version }}"
+          imagePullPolicy: IfNotPresent
+          args:
+           - --upstream-ca=/etc/elasticsearch/secret/admin-ca
+           - --https-address=:4443
+           - -provider=openshift
+           - -client-id=system:serviceaccount:{{ openshift_logging_elasticsearch_namespace }}:aggregated-logging-elasticsearch
+           - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
+           - -cookie-secret={{ 16 | lib_utils_oo_random_word | b64encode }}
+           - -basic-auth-password={{ basic_auth_passwd }}
+           - -upstream=https://localhost:9200
+           - '-openshift-sar={"namespace": "{{ openshift_logging_elasticsearch_namespace}}", "verb": "view", "resource": "prometheus", "group": "metrics.openshift.io"}'
+           - '-openshift-delegate-urls={"/": {"resource": "prometheus", "verb": "view", "group": "metrics.openshift.io", "namespace": "{{ openshift_logging_elasticsearch_namespace}}"}}'
+           - --tls-cert=/etc/tls/private/tls.crt
+           - --tls-key=/etc/tls/private/tls.key
+           - -pass-access-token
+           - -pass-user-headers
+          ports:
+          - containerPort: 4443
+            name: proxy
+            protocol: TCP
+          volumeMounts:
+          - mountPath: /etc/tls/private
+            name: proxy-tls
+            readOnly: true
+          - mountPath: /etc/elasticsearch/secret
+            name: elasticsearch
+            readOnly: true
+          resources:
+            limits:
+              memory: "{{openshift_logging_elasticsearch_proxy_memory_limit }}"
+            requests:
+              cpu: "{{openshift_logging_elasticsearch_proxy_cpu_request }}"
+              memory: "{{openshift_logging_elasticsearch_proxy_memory_limit }}"
+      volumes:
+        - name: proxy-tls
+          secret:
+            secretName: prometheus-tls
+        - name: elasticsearch
+          secret:
+            secretName: {{ es_cluster_name }}-certs
+        - name: elasticsearch-config
+          configMap:
+            name: {{ es_configmap }}
+{% if storage_type == 'pvc' %}
+        - name: elasticsearch-storage
+          persistentVolumeClaim:
+            claimName: {{ openshift_logging_elasticsearch_pvc_name }}
+{% elif storage_type == 'hostmount' %}
+{% for item in hostmount_path %}
+        - name: elasticsearch-storage-{{ loop.index0 }}
+          hostPath:
+            path: {{ item }}
+{% endfor %}
+{% else %}
+        - name: elasticsearch-storage
+          emptydir: {}
+{% endif %}
