@@ -17,7 +17,7 @@
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
     selector:
       cluster-name: "{{ openshift_logging_elasticsearch_clustername }}"
-      es-node-master: "1"
+      es-node-master: "True"
     labels:
       logging-infra: 'support'
       cluster-name: "{{ openshift_logging_elasticsearch_clustername }}"
@@ -33,7 +33,7 @@
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
     selector:
       cluster-name: "{{ openshift_logging_elasticsearch_clustername }}"
-      es-node-client: "1"
+      es-node-client: "True"
     labels:
       logging-infra: 'support'
       cluster-name: "{{ openshift_logging_elasticsearch_clustername }}"

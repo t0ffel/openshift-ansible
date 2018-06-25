@@ -5,36 +5,30 @@
 
 - name: Client nodes must have http service enabled
   set_fact:
-    es_http_service: "1"
+    es_http_service: true
   when: es_role in ["clientdata", "clientdatamaster", "client"]
 
 - set_fact:
-    es_http_service: "0"
+    es_http_service: false
   when: es_role in ["master", "data"]
 
 - name: Define whether this is a master node
   set_fact:
-    node_master: "0"
+    node_master: false
   when: es_role in ["client", "data", "clientdata"]
 
 - set_fact:
-    node_master: "1"
+    node_master: true
   when: es_role in ["master", "clientdatamaster"]
 
 - name: Define whether this is a data node
   set_fact:
-    node_data: "1"
+    node_data: true
   when: es_role in ["data", "clientdata", "clientdatamaster"]
 
 - set_fact:
-    node_data: "0"
+    node_data: false
   when: es_role in ["client", "master"]
-
-- debug:
-    var: es_http_service
-
-- debug:
-    var: node_master
 
 # allow passing in a tempdir
 - name: Create temp directory for doing work in for role {{ es_role }}
@@ -223,7 +217,6 @@
   when: es_dc_creation.changed | bool
 
 ## Placeholder for migration when necessary ##
-
 - name: Delete temp directory
   file:
     name: "{{ tempdir }}"
