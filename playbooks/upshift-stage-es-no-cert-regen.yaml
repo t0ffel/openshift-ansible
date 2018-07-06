@@ -31,6 +31,7 @@
         node_storage_type: emptydir
         limits:
           memory: 2Gi
+          cpu: 1
         requests:
           memory: 1Gi
           cpu: 200m
@@ -40,7 +41,7 @@
         limits:
           memory: 16Gi
         requests:
-          cpu: 1000m
+          cpu: 2
           memory: 4Gi
         pvc_name: dh-stage-storage-pvc-1
       - node_role:  clientdata
@@ -49,7 +50,7 @@
         limits:
           memory: 16Gi
         requests:
-          cpu: 1000m
+          cpu: 2
           memory: 4Gi
         pvc_name: dh-stage-storage-pvc-2
       - node_role:  clientdata
@@ -58,7 +59,7 @@
         limits:
           memory: 16Gi
         requests:
-          cpu: 1000m
+          cpu: 2
           memory: 4Gi
         pvc_name: dh-stage-storage-pvc-3
 
