@@ -40,6 +40,7 @@
         node_storage_type: pvc
         limits:
           memory: 16Gi
+          cpu: 2
         requests:
           cpu: 2
           memory: 4Gi
@@ -49,6 +50,7 @@
         node_storage_type: pvc
         limits:
           memory: 16Gi
+          cpu: 2
         requests:
           cpu: 2
           memory: 4Gi
@@ -58,6 +60,7 @@
         node_storage_type: pvc
         limits:
           memory: 16Gi
+          cpu: 2
         requests:
           cpu: 2
           memory: 4Gi
@@ -69,3 +72,5 @@
       openshift_logging_image_prefix: docker-registry.engineering.redhat.com/aicoe/
       openshift_logging_image_pull_secret: ''
       openshift_logging_es_hostname: elastic1-dh-stage-storage.cloud.upshift.engineering.redhat.com
+      node_quorum: 2
+      expected_data_nodes: 3

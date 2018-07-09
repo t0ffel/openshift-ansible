@@ -154,6 +154,12 @@ spec:
               name: HAS_DATA
               value: "{{ node_data }}"
             -
+              name: NODE_QUORUM
+              value: "{{ node_quorum }}"
+            -
+              name: RECOVER_EXPECTED_NODES
+              value: "{{ expected_data_nodes }}"
+            -
               name: "PROMETHEUS_USER"
               value: "{{openshift_logging_elasticsearch_prometheus_sa}}"
           volumeMounts:
