@@ -15,16 +15,28 @@
     state: present
     name: "{{ openshift_logging_elasticsearch_clustername }}-cluster"
     namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+    clusterip: 'None'
+    annotations:
+      service.alpha.kubernetes.io/tolerate-unready-endpoints: 'true'
     selector:
       cluster-name: "{{ openshift_logging_elasticsearch_clustername }}"
       es-node-master: "True"
     labels:
       logging-infra: 'support'
       cluster-name: "{{ openshift_logging_elasticsearch_clustername }}"
-    clusterip: None
     ports:
       - port: 9300
     kubeconfig: '{{ kubeconfig }}'
+
+- name: Edit {{ openshift_logging_elasticsearch_clustername }}-cluster service
+  oc_edit:
+    state: present
+    kind: service
+    kubeconfig: "{{ kubeconfig }}"
+    name: "{{ openshift_logging_elasticsearch_clustername }}-cluster"
+    namespace: "{{ openshift_logging_elasticsearch_namespace }}"
+    content:
+      spec.publishNotReadyAddresses: "{{ true | bool }}"
 
 - name: Set {{ openshift_logging_elasticsearch_clustername }} port 9200 service
   oc_service:

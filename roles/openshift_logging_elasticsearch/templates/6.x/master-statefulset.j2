@@ -68,7 +68,7 @@ spec:
 {% endif %}
       containers:
         - name: "elasticsearch"
-          image: "{{ openshift_logging_elasticsearch_image_prefix }}logging-elasticsearch-6.2:{{ openshift_logging_elasticsearch_image_version }}"
+          image: "{{ openshift_logging_elasticsearch_image_prefix }}logging-elasticsearch-{{ __es_version }}:{{ openshift_logging_elasticsearch_image_version }}"
           imagePullPolicy: IfNotPresent
           resources:
 {% if limits is defined %}
