@@ -11,7 +11,7 @@ properties(
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
     parameters(
       [
-        string(defaultValue: '0326_es5_dev', description: 'commit ref hash, branch, or tag to build', name: 'ELASTICSEARCH_BRANCH'),
+        string(defaultValue: 'es5_stage', description: 'commit ref hash, branch, or tag to build', name: 'ELASTICSEARCH_BRANCH'),
         string(defaultValue: 'dh-stage-storage', description: 'OpenShift Project to deploy Kibana into', name: 'ELASTICSEARCH_PROJECT'),
       ]
     ),
@@ -30,7 +30,7 @@ ansiColor('xterm') {
             stage('Trigger Deployment Playbook') {
               run_deployment()
             }
-          
+
         }
       }
     }
@@ -40,7 +40,7 @@ ansiColor('xterm') {
 def checkout_scms() {
     checkout poll: false, scm: [
       $class: 'GitSCM',
-      branches: [[name: "*/0326_es5_dev"]],
+      branches: [[name: "*/${ELASTICSEARCH_BRANCH}"]],
       doGenerateSubmoduleConfigurations: false,
       extensions: [
         [$class: 'WipeWorkspace'],
