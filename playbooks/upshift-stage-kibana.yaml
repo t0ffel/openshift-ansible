@@ -18,3 +18,5 @@
       openshift_logging_kibana_proxy_image_version: "v1.0.0"
       kubeconfig: /home/centos/.kube/config
       __base_file_dir: 5.x
+      openshift_logging_kibana_memory_limit: 2Gi
+      openshift_logging_kibana_cpu_limit: 1
