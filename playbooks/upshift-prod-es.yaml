@@ -48,7 +48,7 @@
         hostmount_path:
         - /elasticsearch
         nodeSelector:
-          kubernetes.io/hostname: elasticsearch-001.datahub.prod.upshift.eng.rdu2.redhat.com
+          kubernetes.io/hostname: elasticsearch-001.datahub.prod.upshift.rdu2.redhat.com
       - node_role:  clientdata
         storage_group: 65534
         node_storage_type: hostmount
@@ -61,7 +61,7 @@
         hostmount_path:
         - /elasticsearch
         nodeSelector:
-          kubernetes.io/hostname: elasticsearch-002.datahub.prod.upshift.eng.rdu2.redhat.com
+          kubernetes.io/hostname: elasticsearch-002.datahub.prod.upshift.rdu2.redhat.com
       - node_role:  clientdata
         storage_group: 65534
         node_storage_type: hostmount
@@ -74,7 +74,7 @@
         hostmount_path:
         - /elasticsearch
         nodeSelector:
-          kubernetes.io/hostname: elasticsearch-003.datahub.prod.upshift.eng.rdu2.redhat.com
+          kubernetes.io/hostname: elasticsearch-003.datahub.prod.upshift.rdu2.redhat.com
 
       openshift_logging_elasticsearch_log_appenders: console
       openshift_logging_elasticsearch_node_topology_defined: "true"
