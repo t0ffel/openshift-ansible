@@ -2,12 +2,6 @@
 - name: install elasticsearch
   hosts: masters
   roles:
-  - role: openshift_logging_certs
-    vars:
-      generated_certs_dir: /home/centos/prod-es-certs
-      svc_name: prodes
-      kubeconfig: /home/centos/.kube/config
-      openshift_logging_kibana_hostname: kibana-dh-prod-storage.cloud.upshift.engineering.redhat.com
   - role: openshift_logging_elasticsearch
     vars:
       full_restart_cluster: True
@@ -54,7 +48,7 @@
         hostmount_path:
         - /elasticsearch
         nodeSelector:
-          kubernetes.io/hostname: elasticsearch-001.infra.prod.upshift.eng.rdu2.redhat.com
+          kubernetes.io/hostname: elasticsearch-001.datahub.prod.upshift.eng.rdu2.redhat.com
       - node_role:  clientdata
         storage_group: 65534
         node_storage_type: hostmount
@@ -67,7 +61,7 @@
         hostmount_path:
         - /elasticsearch
         nodeSelector:
-          kubernetes.io/hostname: elasticsearch-002.infra.prod.upshift.eng.rdu2.redhat.com
+          kubernetes.io/hostname: elasticsearch-002.datahub.prod.upshift.eng.rdu2.redhat.com
       - node_role:  clientdata
         storage_group: 65534
         node_storage_type: hostmount
@@ -80,13 +74,13 @@
         hostmount_path:
         - /elasticsearch
         nodeSelector:
-          kubernetes.io/hostname: elasticsearch-003.infra.prod.upshift.eng.rdu2.redhat.com
+          kubernetes.io/hostname: elasticsearch-003.datahub.prod.upshift.eng.rdu2.redhat.com
 
       openshift_logging_elasticsearch_log_appenders: console
       openshift_logging_elasticsearch_node_topology_defined: "true"
       openshift_logging_elasticsearch_allow_external: true
       openshift_logging_image_prefix: docker-registry.engineering.redhat.com/aicoe/
       openshift_logging_image_pull_secret: ''
-      openshift_logging_es_hostname: elastic1-dh-prod-storage.cloud.upshift.engineering.redhat.com
+      openshift_logging_es_hostname: elastic1-dh-prod-storage.cloud.datahub.upshift.engineering.redhat.com
       node_quorum: 2
       expected_data_nodes: 3
