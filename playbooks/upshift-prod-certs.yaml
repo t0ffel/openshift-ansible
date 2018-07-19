@@ -1,0 +1,11 @@
+---
+- name: install elasticsearch
+  hosts: masters
+  roles:
+  - role: openshift_logging_certs
+    vars:
+      generated_certs_dir: /home/fedora/prod-es-certs
+      svc_name: prodes
+      kubeconfig: /home/fedora/.kube/config
+      openshift_logging_kibana_hostname: kibana.cloud.datahub.upshift.redhat.com
+      openshift_logging_namespace: dh-prod-storage
