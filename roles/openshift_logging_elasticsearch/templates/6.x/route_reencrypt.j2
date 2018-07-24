@@ -1,0 +1,20 @@
+apiVersion: "v1"
+kind: "Route"
+metadata:
+  name: "{{obj_name}}"
+{% if labels is defined%}
+  labels:
+{% for key, value in labels.items() %}
+    {{key}}: {{value}}
+{% endfor %}
+{% endif %}
+spec:
+  host: {{ route_host }}
+  tls:
+    termination: passthrough
+{% if edge_term_policy is defined and edge_term_policy | length > 0 %}
+    insecureEdgeTerminationPolicy: {{ edge_term_policy }}
+{% endif %}
+  to:
+    kind: Service
+    name: {{ service_name }}
