@@ -75,6 +75,37 @@
         - /elasticsearch
         nodeSelector:
           kubernetes.io/hostname: elasticsearch-003.datahub.prod.upshift.rdu2.redhat.com
+      - node_role:  clientdata
+        storage_group: 65534
+        node_storage_type: pvc
+        limits:
+          memory: 16Gi
+          cpu: 2
+        requests:
+          cpu: 2
+          memory: 4Gi
+        pvc_name: dh-stage-storage-pvc-1
+      - node_role:  clientdata
+        storage_group: 65534
+        node_storage_type: pvc
+        limits:
+          memory: 16Gi
+          cpu: 2
+        requests:
+          cpu: 2
+          memory: 4Gi
+        pvc_name: dh-stage-storage-pvc-2
+      - node_role:  clientdata
+        storage_group: 65534
+        node_storage_type: pvc
+        limits:
+          memory: 16Gi
+          cpu: 2
+        requests:
+          cpu: 2
+          memory: 4Gi
+        pvc_name: dh-stage-storage-pvc-3
+
 
       openshift_logging_elasticsearch_log_appenders: console
       openshift_logging_elasticsearch_node_topology_defined: "true"
